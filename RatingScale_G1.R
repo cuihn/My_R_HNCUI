@@ -63,11 +63,24 @@ merged_data_Q1 <- bind_rows(transposed_data_list)
 #   summarise(Mean = mean(Rating), Median = median(Rating), SD = sd(Rating))
 
 # Subset data for M and D domains only
-merged_data_MD <- merged_data_Q1[merged_data_Q1$Domain %in% c("M"), ]
+merged_data_G1 <- merged_data_Q1[merged_data_Q1$Group %in% c("G1"),]
 
 # Reshape data into wide format
-wide_data_MD <- pivot_wider(merged_data_MD, names_from = c(Domain, Action), values_from = "Rating")
+wide_data_G1 <- pivot_wider(merged_data_G1, names_from = c(ID), values_from = "Rating")
 
+# Subset data for M and D domains only
+merged_data_G1_M <- merged_data_G1[merged_data_G1$Domain %in% c("M"),]
+
+# Reshape data into wide format
+wide_data_G1_M <- pivot_wider(merged_data_G1_M, names_from = c(ID), values_from = "Rating")
+
+# Merge duplicated rows by taking the non-NA value in each column
+merged_data <- data.frame(Name = unique(my_data$Name))
+for (col in names(my_data)[-1]) {
+  merged_data[[col]] <- sapply(split(my_data[[col]], my_data$Name), function(x) x[!is.na(x)][1])
+}
+
+merged_data
 
 # subset the data for the two groups
 Action_A <- merged_data_Q1$Rating[merged_data_Q1$Action == "A"]
