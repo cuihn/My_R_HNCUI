@@ -58,10 +58,16 @@ transposed_data_list <- lapply(1:4, function(i) {
 merged_data_Q1 <- bind_rows(transposed_data_list)
 
 # Summary statistics
+# summary_df <- merged_data_Q1 %>%
+#   group_by(Form) %>%
+#   summarise(Mean = mean(Rating), Median = median(Rating), SD = sd(Rating))
 
-summary_df <- merged_data_Q1 %>%
-  group_by(Form) %>%
-  summarise(Mean = mean(Rating), Median = median(Rating), SD = sd(Rating))
+# Subset data for M and D domains only
+merged_data_MD <- merged_data_Q1[merged_data_Q1$Domain %in% c("M"), ]
+
+# Reshape data into wide format
+wide_data_MD <- pivot_wider(merged_data_MD, names_from = c(Domain, Action), values_from = "Rating")
+
 
 # subset the data for the two groups
 Action_A <- merged_data_Q1$Rating[merged_data_Q1$Action == "A"]
