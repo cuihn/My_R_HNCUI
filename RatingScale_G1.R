@@ -75,13 +75,49 @@ merged_data_G1_M <- merged_data_G1[merged_data_G1$Domain %in% c("M"),]
 wide_data_G1_M <- pivot_wider(merged_data_G1_M, names_from = c(ID), values_from = "Rating")
 
 # Merge duplicated rows by taking the non-NA value in each column
-merged_data <- data.frame(Name = unique(my_data$Name))
-for (col in names(my_data)[-1]) {
-  merged_data[[col]] <- sapply(split(my_data[[col]], my_data$Name), function(x) x[!is.na(x)][1])
+G1_M_IRR <- data.frame(SentenceType = unique(wide_data_G1_M$SentenceType))
+for (col in names(wide_data_G1_M)[-1]) {
+  G1_M_IRR[[col]] <- sapply(split(wide_data_G1_M[[col]], wide_data_G1_M$SentenceType), function(x) x[!is.na(x)][1])
 }
 
-merged_data
+G1_M_IRR
 
-# subset the data for the two groups
-Action_A <- merged_data_Q1$Rating[merged_data_Q1$Action == "A"]
-Action_I <- merged_data_Q1$Rating[merged_data_Q1$Action == "I"]
+# Merge duplicated rows by taking the non-NA value in each column
+G1_M_IRR <- data.frame(SentenceType = unique(wide_data_G1_M$SentenceType))
+for (col in names(wide_data_G1_M)[-1]) {
+  G1_M_IRR[[col]] <- sapply(split(wide_data_G1_M[[col]], wide_data_G1_M$SentenceType), function(x) x[!is.na(x)][1])
+}
+
+G1_M_IRR <- dplyr::select(G1_M_IRR, -c("Gender", "Domain", "Action", "Form", "Group"))
+G1_M_IRR
+
+###
+icc_results <- icc(G1_M_IRR[,2:19], model = "twoway", type = "consistency", unit = "single")
+
+# Calculate ICC for each sentence item
+icc_results <- apply(G1_M_IRR[,2:19], 2, function(x) icc(x, model = "twoway", type = "consistency", unit = "single"))
+icc_results
+
+# # Sort ICC values in descending order
+icc_sorted <- sort(icc_results$ICC, decreasing = TRUE)
+# 
+# # Select sentences with highest ICC values
+# high_icc <- icc_results[order(icc_results$ICC, decreasing = TRUE), ][2:5, ]
+# 
+# 
+# 
+# # Identify items with low ICC
+# low_icc_items <- which(icc$value < 0.6)
+# 
+# # Create new dataset with low-ICC items removed
+# new_ratings <- G1_M_IRR[,-low_icc_items]
+# 
+# # Print summary statistics for new dataset
+# summary(new_ratings)
+# 
+# # print
+# print(low_icc_items )
+
+# # subset the data for the two groups
+# Action_A <- merged_data_Q1$Rating[merged_data_Q1$Action == "A"]
+# Action_I <- merged_data_Q1$Rating[merged_data_Q1$Action == "I"]
