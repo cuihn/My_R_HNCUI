@@ -22,8 +22,9 @@ library(tidyr)
 # install.packages("labeling")
 library(labeling)
 # install.packages("ICC")
-library(irr)
+#library(irr)
 
+# ---------------------
 for (i in 1:4) {
   file_name <- paste0("G", i, "_Q1.txt")
   file_path <- paste0("/Users/hainingcui/Dropbox/Trying/", file_name)
@@ -46,6 +47,7 @@ for (i in 1:4) {
   }
 }
 
+# -----------------------
 # create a list of the transposed data frames
 transposed_data_list <- lapply(1:4, function(i) {
   file_name <- paste0("G", i, "_Q1_transposed")
@@ -57,10 +59,11 @@ transposed_data_list <- lapply(1:4, function(i) {
 # merge the data frames with an index column
 merged_data_Q1 <- bind_rows(transposed_data_list)
 
+# Subset data for G1 and M domain only
+merged_data_G1_M <- merged_data_Q1[merged_data_Q1$Domain == "M" & merged_data_Q1$Group == "G1", ]
 
 # Reshape data into wide format
 wide_data_G1_M <- pivot_wider(merged_data_G1_M, names_from = c(ID), values_from = "Rating")
-
 
 # Merge duplicated rows by taking the non-NA value in each column
 G1_M_IRR <- data.frame(SentenceType = unique(wide_data_G1_M$SentenceType))
@@ -71,4 +74,5 @@ for (col in names(wide_data_G1_M)[-1]) {
 G1_M_IRR <- dplyr::select(G1_M_IRR, -c("Gender", "Domain", "Action", "Form", "Group"))
 G1_M_IRR
 
+#--------------------
 
