@@ -59,6 +59,25 @@ transposed_data_list <- lapply(1:4, function(i) {
 # merge the data frames with an index column
 merged_data_Q1 <- bind_rows(transposed_data_list)
 
+# ---------------------------- 
+# Combine the Domain and Action columns
+Q1_comb <- unite(merged_data_Q1 , "Domain_Action", Domain, Action, sep = "")
+
+# Reshape the data from long to wide format
+Q1_wide <- pivot_wider(Q1_comb, names_from = Domain_Action, values_from = Rating)
+
+# Print the resulting data frame
+print(Q1_wide)
+
+# Merge duplicated rows by taking the non-NA value in each column
+Q1_wide_new <- data.frame(SentenceType = unique(Q1_wide$SentenceType))
+for (col in names(Q1_wide)[-1]) {
+  Q1_wide_new[[col]] <- sapply(split(Q1_wide[[col]], Q1_wide$SentenceType), function(x) x[!is.na(x)][1])
+}
+
+print(Q1_wide_new) 
+
+# ------------------------------
 # Subset data for G1 and M domain only
 merged_data_G1_M <- merged_data_Q1[merged_data_Q1$Domain == "M" & merged_data_Q1$Group == "G1", ]
 
@@ -72,7 +91,27 @@ for (col in names(wide_data_G1_M)[-1]) {
 }
 
 G1_M_IRR <- dplyr::select(G1_M_IRR, -c("Gender", "Domain", "Action", "Form", "Group"))
-G1_M_IRR
+G1_M_IRR <- data.frame(G1_M_IRR,check.names = TRUE)
 
-#--------------------
+#-------------------- Inter rater test
+
+# Assuming your data frame is called "my_data"
+# Compute inter-rater reliability coefficients using alpha() function for each item
+reliabilities <- apply(G1_M_IRR[, 2:19], 2, alpha, check.keys = FALSE)
+
+# Add the SentenceType column back to the output
+reliabilities_with_items <- cbind(SentenceType = G1_M_IRR$SentenceType, reliabilities)
+
+# Print the reliability coefficients for each item
+print(reliabilities)
+
+# -------------------  Calculate the mode of each item 
+install.packages("DescTools")
+library(DescTools)
+
+# Calculate the mode of each row (subject)
+modes <- apply(G1_M_IRR[, 2:19], 1, mode)
+
+# Print the modes for each subject
+print(modes)
 
