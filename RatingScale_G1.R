@@ -24,7 +24,7 @@ library(labeling)
 # install.packages("ICC")
 #library(irr)
 
-# ---------------------
+# --------------------- transpose the four groups data
 for (i in 1:4) {
   file_name <- paste0("G", i, "_Q1.txt")
   file_path <- paste0("/Users/hainingcui/Dropbox/Trying/", file_name)
@@ -47,7 +47,7 @@ for (i in 1:4) {
   }
 }
 
-# -----------------------
+# ----------------------- merge the data frames with an index column
 # create a list of the transposed data frames
 transposed_data_list <- lapply(1:4, function(i) {
   file_name <- paste0("G", i, "_Q1_transposed")
@@ -59,59 +59,96 @@ transposed_data_list <- lapply(1:4, function(i) {
 # merge the data frames with an index column
 merged_data_Q1 <- bind_rows(transposed_data_list)
 
-# ---------------------------- 
-# Combine the Domain and Action columns
-Q1_comb <- unite(merged_data_Q1 , "Domain_Action", Domain, Action, sep = "")
 
-# Reshape the data from long to wide format
-Q1_wide <- pivot_wider(Q1_comb, names_from = Domain_Action, values_from = Rating)
+# --------------------------- summary for descriptive stats 
+mydata_summary_G1_AD <- G1_Q1_transposed %>%
+  filter(Action == "A") %>%
+  filter(Domain == "D") %>%
+  group_by(SentenceType) %>%
+  summarise(mean_score = mean(Rating),
+            median_score = median(Rating),
+            sd_score = sd(Rating),
+            min_score = min(Rating),
+            max_score = max(Rating),
+            pct_1 = mean(Rating == 1),
+            pct_2 = mean(Rating == 2),
+            pct_3 = mean(Rating == 3),
+            pct_4 = mean(Rating == 4),
+            pct_5 = mean(Rating == 5),
+            total_pct_1_2 = (mean(Rating == 1) + mean(Rating == 2)) * 100) %>%
+  filter(total_pct_1_2 >= 80)
 
-# Print the resulting data frame
-print(Q1_wide)
+write.csv(mydata_summary_G1_AD,file = )
 
-# Merge duplicated rows by taking the non-NA value in each column
-Q1_wide_new <- data.frame(SentenceType = unique(Q1_wide$SentenceType))
-for (col in names(Q1_wide)[-1]) {
-  Q1_wide_new[[col]] <- sapply(split(Q1_wide[[col]], Q1_wide$SentenceType), function(x) x[!is.na(x)][1])
-}
-
-print(Q1_wide_new) 
-
-# ------------------------------
-# Subset data for G1 and M domain only
-merged_data_G1_M <- merged_data_Q1[merged_data_Q1$Domain == "M" & merged_data_Q1$Group == "G1", ]
-
-# Reshape data into wide format
-wide_data_G1_M <- pivot_wider(merged_data_G1_M, names_from = c(ID), values_from = "Rating")
-
-# Merge duplicated rows by taking the non-NA value in each column
-G1_M_IRR <- data.frame(SentenceType = unique(wide_data_G1_M$SentenceType))
-for (col in names(wide_data_G1_M)[-1]) {
-  G1_M_IRR[[col]] <- sapply(split(wide_data_G1_M[[col]], wide_data_G1_M$SentenceType), function(x) x[!is.na(x)][1])
-}
-
-G1_M_IRR <- dplyr::select(G1_M_IRR, -c("Gender", "Domain", "Action", "Form", "Group"))
-G1_M_IRR <- data.frame(G1_M_IRR,check.names = TRUE)
-
-#-------------------- Inter rater test
-
-# Assuming your data frame is called "my_data"
-# Compute inter-rater reliability coefficients using alpha() function for each item
-reliabilities <- apply(G1_M_IRR[, 2:19], 2, alpha, check.keys = FALSE)
-
-# Add the SentenceType column back to the output
-reliabilities_with_items <- cbind(SentenceType = G1_M_IRR$SentenceType, reliabilities)
-
-# Print the reliability coefficients for each item
-print(reliabilities)
-
-# -------------------  Calculate the mode of each item 
-install.packages("DescTools")
-library(DescTools)
-
-# Calculate the mode of each row (subject)
-modes <- apply(G1_M_IRR[, 2:19], 1, mode)
-
-# Print the modes for each subject
-print(modes)
+# # ---------------------------- 
+# # Combine the Domain and Action columns
+# Q1_comb <- unite(merged_data_Q1 , "Domain_Action", Domain, Action, sep = "")
+# 
+# # Reshape the data from long to wide format
+# Q1_wide <- pivot_wider(Q1_comb, names_from = Domain_Action, values_from = Rating)
+# 
+# # Print the resulting data frame
+# print(Q1_wide)
+# 
+# # Merge duplicated rows by taking the non-NA value in each column
+# Q1_wide_new <- data.frame(SentenceType = unique(Q1_wide$SentenceType))
+# for (col in names(Q1_wide)[-1]) {
+#   Q1_wide_new[[col]] <- sapply(split(Q1_wide[[col]], Q1_wide$SentenceType), function(x) x[!is.na(x)][1])
+# }
+# 
+# print(Q1_wide_new) 
+# 
+# # ------------------------------
+# # Subset data for G1 and M domain only
+# merged_data_G1_M <- merged_data_Q1[merged_data_Q1$Domain == "M" & merged_data_Q1$Group == "G1", ]
+# 
+# # Reshape data into wide format
+# wide_data_G1_M <- pivot_wider(merged_data_G1_M, names_from = c(ID), values_from = "Rating")
+# 
+# # Merge duplicated rows by taking the non-NA value in each column
+# G1_M_IRR <- data.frame(SentenceType = unique(wide_data_G1_M$SentenceType))
+# for (col in names(wide_data_G1_M)[-1]) {
+#   G1_M_IRR[[col]] <- sapply(split(wide_data_G1_M[[col]], wide_data_G1_M$SentenceType), function(x) x[!is.na(x)][1])
+# }
+# 
+# G1_M_IRR <- dplyr::select(G1_M_IRR, -c("Gender", "Domain", "Action", "Form", "Group"))
+# G1_M_IRR <- data.frame(G1_M_IRR,check.names = TRUE)
+# 
+# #-------------------- Inter rater test
+# 
+# # Assuming your data frame is called "my_data"
+# # Compute inter-rater reliability coefficients using alpha() function for each item
+# reliabilities <- apply(G1_M_IRR[, 2:19], 2, alpha, check.keys = FALSE)
+# 
+# # Add the SentenceType column back to the output
+# reliabilities_with_items <- cbind(SentenceType = G1_M_IRR$SentenceType, reliabilities)
+# 
+# # Print the reliability coefficients for each item
+# print(reliabilities)
+# 
+# # -------------------  Calculate the mode of each item 
+# install.packages("DescTools")
+# library(DescTools)
+# 
+# # Calculate the mode of each row (subject)
+# modes <- apply(G1_M_IRR[, 2:19], 1, mode)
+# 
+# # Print the modes for each subject
+# print(modes)
+# 
+# 
+# # ----------------------------
+# 
+# # Create a matrix with the number of raters who assigned each rating
+# ratings <- G1_M_IRR[, 2:19]
+# rating_matrix <- t(apply(ratings, 1, tabulate, nbins = 5))
+# 
+# # Calculate Fleiss' kappa for each item with 18 raters
+# kappas <- apply(rating_matrix, 1, function(row) {
+#   if(sum(!is.na(row)) == 18) {
+#     kappam.fleiss(row)
+#   } else {
+#     NA
+#   }
+# })
 
