@@ -58,10 +58,8 @@ transposed_data_list <- lapply(1:4, function(i) {
 
 # merge the data frames with an index column
 merged_data_Q1 <- bind_rows(transposed_data_list)
-
-
 # --------------------------- summary for descriptive stats 
-mydata_summary_G1_AD <- G1_Q1_transposed %>%
+summary_G1_AD <- G1_Q1_transposed %>%
   filter(Action == "A") %>%
   filter(Domain == "D") %>%
   group_by(SentenceType) %>%
@@ -78,7 +76,7 @@ mydata_summary_G1_AD <- G1_Q1_transposed %>%
             total_pct_1_2 = (mean(Rating == 1) + mean(Rating == 2)) * 100) %>%
   filter(total_pct_1_2 >= 80)
 
-write.csv(mydata_summary_G1_AD,file = )
+write.csv(mydata_summary_G1_AD,file = 'summary_G1_AD', raw = TRUE )
 
 # # ---------------------------- 
 # # Combine the Domain and Action columns
