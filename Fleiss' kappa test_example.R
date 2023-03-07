@@ -27,8 +27,9 @@ set.seed(123)
 ratings <- data.frame(replicate(18, sample(1:5, 260, replace = TRUE)))
 
 # Calculate ICC
-icc <- icc(ratings, model = "twoway", type = "agreement", unit = "single")
+icc_items <- apply(ratings, 2, function(x) ICC(x, model = "twoway", type = "agreement", unit = "single"))
 
+#icc <- icc(ratings, model = "twoway", type = "agreement", unit = "single")
 # Identify items with low ICC
 low_icc_items <- which(icc$value < 0.3)
 
@@ -41,5 +42,37 @@ summary(new_ratings)
 # print
 print(low_icc_items )
 
+
+
+library(irr)
+
+# Create example data
+set.seed(123)
+ratings <- data.frame(replicate(18, sample(1:5, 260, replace = TRUE)))
+
+# Calculate ICC
+icc_items <- apply(ratings, 2, function(x) ICC(x, model = "twoway", type = "agreement", unit = "single", unit.name = "item"))
+
+
+#library(psych)
+library(irr)
+#install.packages("moments")
+library(moments)
+# Create example data
+set.seed(123)
+ratings <- data.frame(replicate(18, sample(1:5, 260, replace = TRUE)))
+
+# Calculate ICC for each item
+icc_items <- apply(ratings, 2, function(x) icc(x, model = "twoway", type = "agreement", unit = "single"))
+
+# Calculate skewness and kurtosis for each item
+skew_items <- apply(ratings, 2, skewness)
+kurtosis_items <- apply(ratings, 2, kurtosis)
+
+# Combine ICC, skewness, and kurtosis values in a table
+item_stats <- data.frame(Item = names(ratings), icc = icc_items, Skewness = skew_items, Kurtosis = kurtosis_items)
+
+# Exclude items with low ICC values and high skewness or kurtosis values
+excluded_items <- item_stats[item_stats$ICC < 0.5 & (abs(item_stats$Skewness) > 1 | abs(item_stats$Kurtosis) > 2), "Item"]
 
 
