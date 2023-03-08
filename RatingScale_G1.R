@@ -27,6 +27,9 @@ library(labeling)
 # install.packages("openxlsx")
 library(openxlsx)
 # --------------------- transpose the four groups data
+
+all_rating <- read.delim("/Users/hainingcui/Dropbox/Trying/Written Validation Results.txt")
+
 for (i in 1:4) {
   file_name <- paste0("G", i, "_Q1.txt")
   file_path <- paste0("/Users/hainingcui/Dropbox/Trying/", file_name)
@@ -248,6 +251,65 @@ summary_G4_IM_low <- G4_Q1_transposed %>%
   filter(total_pct_1_2 >= 80)
 
 write.xlsx(summary_G4_IM_low,file = 'summary_G4_IM_low.xlsx')
+
+# ---------------- merger data with describe stats
+# Create a list of data frames to merge
+summary_list1 <- list(summary_G1_AD_high, summary_G1_AD_low, 
+                     summary_G1_AM_high, summary_G1_AM_low, 
+                     summary_G1_ID_high, summary_G1_ID_low, 
+                     summary_G1_IM_high, summary_G1_IM_low)
+
+# Create a list of data frames to merge
+summary_list2 <- list(
+                     summary_G2_AD_high, summary_G2_AD_low,
+                     summary_G2_AM_high, summary_G2_AM_low,
+                     summary_G2_ID_high, summary_G2_ID_low,
+                     summary_G2_IM_high, summary_G2_IM_low
+                     )
+
+summary_list3 <- list(summary_G3_AD_high, summary_G3_AD_low, 
+                      summary_G3_AM_high, summary_G3_AM_low, 
+                      summary_G3_ID_high, summary_G3_ID_low, 
+                      summary_G3_IM_high, summary_G3_IM_low)
+
+summary_list4 <- list(summary_G4_AD_high, summary_G4_AD_low, 
+                      summary_G4_AM_high, summary_G4_AM_low, 
+                      summary_G4_ID_high, summary_G4_ID_low, 
+                      summary_G4_IM_high, summary_G4_IM_low)
+
+
+
+# Find index of empty element in list
+empty_index <- which(sapply(summary_list, function(x) is.null(x) || length(x) == 0))
+
+# Remove empty element from list
+if (length(empty_index) > 0) {
+  summary_list1 <- summary_list1[-empty_index]
+  summary_list2 <- summary_list2[-empty_index]
+  summary_list3 <- summary_list3[-empty_index]
+  summary_list4 <- summary_list4[-empty_index]
+}
+
+# Merge all data frames in the list by SentenceType
+merged_df <- all_rating
+for (df in summary_list1) {
+  merged_df <- merge(merged_df, df, by = "SentenceType", all = TRUE)
+}
+for (df in summary_list2) {
+  merged_df <- merge(merged_df, df, by = "SentenceType", all = TRUE)
+}
+merged_df <- all_rating
+for (df in summary_list3) {
+  merged_df <- merge(merged_df, df, by = "SentenceType", all = TRUE)
+}
+for (df in summary_list4) {
+  merged_df <- merge(merged_df, df, by = "SentenceType", all = TRUE)
+}
+# Print merged data frame
+merged_df
+
+
+write.xlsx(merged_df,file = 'summaary_merged_df_Q1.xlsx')
 
 
 # # ---------------------------- 
