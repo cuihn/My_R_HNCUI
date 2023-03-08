@@ -1,5 +1,6 @@
 # Analysis of rating scale data from a perceptual rating online experiment
 
+# ---------------------
 # install.packages('lme4') 
 library(lme4)
 # install.packages('lsmeans') 
@@ -22,8 +23,9 @@ library(tidyr)
 # install.packages("labeling")
 library(labeling)
 # install.packages("ICC")
-#library(irr)
-
+# library(irr)
+# install.packages("openxlsx")
+library(openxlsx)
 # --------------------- transpose the four groups data
 for (i in 1:4) {
   file_name <- paste0("G", i, "_Q1.txt")
@@ -58,13 +60,41 @@ transposed_data_list <- lapply(1:4, function(i) {
 
 # merge the data frames with an index column
 merged_data_Q1 <- bind_rows(transposed_data_list)
-# --------------------------- summary for descriptive stats 
-summary_G1_AD <- G1_Q1_transposed %>%
+
+
+# --------------------------- summary for descriptive stats and select high score 
+summary_G4_AD_high <- G4_Q1_transposed %>%
   filter(Action == "A") %>%
   filter(Domain == "D") %>%
   group_by(SentenceType) %>%
   summarise(mean_score = mean(Rating),
             median_score = median(Rating),
+            q1 <- quantile(Rating, 0.25),
+            q3 <- quantile(Rating, 0.75),
+            median_range <- q3 - q1,
+            sd_score = sd(Rating),
+            min_score = min(Rating),
+            max_score = max(Rating),
+            pct_1 = mean(Rating == 1),
+            pct_2 = mean(Rating == 2),
+            pct_3 = mean(Rating == 3),
+            pct_4 = mean(Rating == 4),
+            pct_5 = mean(Rating == 5),
+            total_pct_4_5 = (mean(Rating == 4) + mean(Rating == 5)) * 100) %>%
+  filter(total_pct_4_5 >= 80)
+
+write.xlsx(summary_G4_AD_high,file = 'summary_G4_AD_high.xlsx')
+
+# --------------------------- summary for descriptive stats and select low score 
+summary_G4_AD_low <- G4_Q1_transposed %>%
+  filter(Action == "A") %>%
+  filter(Domain == "D") %>%
+  group_by(SentenceType) %>%
+  summarise(mean_score = mean(Rating),
+            median_score = median(Rating),
+            q1 <- quantile(Rating, 0.25),
+            q3 <- quantile(Rating, 0.75),
+            median_range <- q3 - q1,
             sd_score = sd(Rating),
             min_score = min(Rating),
             max_score = max(Rating),
@@ -76,7 +106,149 @@ summary_G1_AD <- G1_Q1_transposed %>%
             total_pct_1_2 = (mean(Rating == 1) + mean(Rating == 2)) * 100) %>%
   filter(total_pct_1_2 >= 80)
 
-write.csv(mydata_summary_G1_AD,file = 'summary_G1_AD', raw = TRUE )
+write.xlsx(summary_G4_AD_low,file = 'summary_G4_AD_low.xlsx')
+
+
+# --------------------------- summary for descriptive stats and select high score 
+summary_G4_ID_high <- G4_Q1_transposed %>%
+  filter(Action == "I") %>%
+  filter(Domain == "D") %>%
+  group_by(SentenceType) %>%
+  summarise(mean_score = mean(Rating),
+            median_score = median(Rating),
+            q1 <- quantile(Rating, 0.25),
+            q3 <- quantile(Rating, 0.75),
+            median_range <- q3 - q1,
+            sd_score = sd(Rating),
+            min_score = min(Rating),
+            max_score = max(Rating),
+            pct_1 = mean(Rating == 1),
+            pct_2 = mean(Rating == 2),
+            pct_3 = mean(Rating == 3),
+            pct_4 = mean(Rating == 4),
+            pct_5 = mean(Rating == 5),
+            total_pct_4_5 = (mean(Rating == 4) + mean(Rating == 5)) * 100) %>%
+  filter(total_pct_4_5 >= 80)
+
+write.xlsx(summary_G4_ID_high,file = 'summary_G4_ID_high.xlsx')
+
+# --------------------------- summary for descriptive stats and select low score 
+summary_G4_ID_low <- G4_Q1_transposed %>%
+  filter(Action == "I") %>%
+  filter(Domain == "D") %>%
+  group_by(SentenceType) %>%
+  summarise(mean_score = mean(Rating),
+            median_score = median(Rating),
+            q1 <- quantile(Rating, 0.25),
+            q3 <- quantile(Rating, 0.75),
+            median_range <- q3 - q1,
+            sd_score = sd(Rating),
+            min_score = min(Rating),
+            max_score = max(Rating),
+            pct_1 = mean(Rating == 1),
+            pct_2 = mean(Rating == 2),
+            pct_3 = mean(Rating == 3),
+            pct_4 = mean(Rating == 4),
+            pct_5 = mean(Rating == 5),
+            total_pct_1_2 = (mean(Rating == 1) + mean(Rating == 2)) * 100) %>%
+  filter(total_pct_1_2 >= 80)
+
+write.xlsx(summary_G4_ID_low,file = 'summary_G4_ID_low.xlsx')
+
+
+# --------------------------- summary for descriptive stats and select high score 
+summary_G4_AM_high <- G4_Q1_transposed %>%
+  filter(Action == "A") %>%
+  filter(Domain == "M") %>%
+  group_by(SentenceType) %>%
+  summarise(mean_score = mean(Rating),
+            median_score = median(Rating),
+            q1 <- quantile(Rating, 0.25),
+            q3 <- quantile(Rating, 0.75),
+            median_range <- q3 - q1,
+            sd_score = sd(Rating),
+            min_score = min(Rating),
+            max_score = max(Rating),
+            pct_1 = mean(Rating == 1),
+            pct_2 = mean(Rating == 2),
+            pct_3 = mean(Rating == 3),
+            pct_4 = mean(Rating == 4),
+            pct_5 = mean(Rating == 5),
+            total_pct_4_5 = (mean(Rating == 4) + mean(Rating == 5)) * 100) %>%
+  filter(total_pct_4_5 >= 80)
+
+write.xlsx(summary_G4_AM_high,file = 'summary_G4_AM_high.xlsx')
+
+# --------------------------- summary for descriptive stats and select low score 
+summary_G4_AM_low <- G4_Q1_transposed %>%
+  filter(Action == "A") %>%
+  filter(Domain == "M") %>%
+  group_by(SentenceType) %>%
+  summarise(mean_score = mean(Rating),
+            median_score = median(Rating),
+            q1 <- quantile(Rating, 0.25),
+            q3 <- quantile(Rating, 0.75),
+            median_range <- q3 - q1,
+            sd_score = sd(Rating),
+            min_score = min(Rating),
+            max_score = max(Rating),
+            pct_1 = mean(Rating == 1),
+            pct_2 = mean(Rating == 2),
+            pct_3 = mean(Rating == 3),
+            pct_4 = mean(Rating == 4),
+            pct_5 = mean(Rating == 5),
+            total_pct_1_2 = (mean(Rating == 1) + mean(Rating == 2)) * 100) %>%
+  filter(total_pct_1_2 >= 80)
+
+write.xlsx(summary_G4_AM_low,file = 'summary_G4_AM_low.xlsx')
+
+
+# --------------------------- summary for descriptive stats and select high score 
+summary_G4_IM_high <- G4_Q1_transposed %>%
+  filter(Action == "I") %>%
+  filter(Domain == "M") %>%
+  group_by(SentenceType) %>%
+  summarise(mean_score = mean(Rating),
+            median_score = median(Rating),
+            q1 <- quantile(Rating, 0.25),
+            q3 <- quantile(Rating, 0.75),
+            median_range <- q3 - q1,
+            sd_score = sd(Rating),
+            min_score = min(Rating),
+            max_score = max(Rating),
+            pct_1 = mean(Rating == 1),
+            pct_2 = mean(Rating == 2),
+            pct_3 = mean(Rating == 3),
+            pct_4 = mean(Rating == 4),
+            pct_5 = mean(Rating == 5),
+            total_pct_4_5 = (mean(Rating == 4) + mean(Rating == 5)) * 100) %>%
+  filter(total_pct_4_5 >= 80)
+
+write.xlsx(summary_G4_IM_high,file = 'summary_G4_IM_high.xlsx')
+
+# --------------------------- summary for descriptive stats and select low score 
+summary_G4_IM_low <- G4_Q1_transposed %>%
+  filter(Action == "I") %>%
+  filter(Domain == "M") %>%
+  group_by(SentenceType) %>%
+  summarise(mean_score = mean(Rating),
+            median_score = median(Rating),
+            q1 <- quantile(Rating, 0.25),
+            q3 <- quantile(Rating, 0.75),
+            median_range <- q3 - q1,
+            sd_score = sd(Rating),
+            min_score = min(Rating),
+            max_score = max(Rating),
+            pct_1 = mean(Rating == 1),
+            pct_2 = mean(Rating == 2),
+            pct_3 = mean(Rating == 3),
+            pct_4 = mean(Rating == 4),
+            pct_5 = mean(Rating == 5),
+            total_pct_1_2 = (mean(Rating == 1) + mean(Rating == 2)) * 100) %>%
+  filter(total_pct_1_2 >= 80)
+
+write.xlsx(summary_G4_IM_low,file = 'summary_G4_IM_low.xlsx')
+
 
 # # ---------------------------- 
 # # Combine the Domain and Action columns
@@ -97,29 +269,29 @@ write.csv(mydata_summary_G1_AD,file = 'summary_G1_AD', raw = TRUE )
 # print(Q1_wide_new) 
 # 
 # # ------------------------------
-# # Subset data for G1 and M domain only
-# merged_data_G1_M <- merged_data_Q1[merged_data_Q1$Domain == "M" & merged_data_Q1$Group == "G1", ]
+# # Subset data for G4 and M domain only
+# merged_data_G4_M <- merged_data_Q1[merged_data_Q1$Domain == "M" & merged_data_Q1$Group == "G4", ]
 # 
 # # Reshape data into wide format
-# wide_data_G1_M <- pivot_wider(merged_data_G1_M, names_from = c(ID), values_from = "Rating")
+# wide_data_G4_M <- pivot_wider(merged_data_G4_M, names_from = c(ID), values_from = "Rating")
 # 
 # # Merge duplicated rows by taking the non-NA value in each column
-# G1_M_IRR <- data.frame(SentenceType = unique(wide_data_G1_M$SentenceType))
-# for (col in names(wide_data_G1_M)[-1]) {
-#   G1_M_IRR[[col]] <- sapply(split(wide_data_G1_M[[col]], wide_data_G1_M$SentenceType), function(x) x[!is.na(x)][1])
+# G4_M_IRR <- data.frame(SentenceType = unique(wide_data_G4_M$SentenceType))
+# for (col in names(wide_data_G4_M)[-1]) {
+#   G4_M_IRR[[col]] <- sapply(split(wide_data_G4_M[[col]], wide_data_G4_M$SentenceType), function(x) x[!is.na(x)][1])
 # }
 # 
-# G1_M_IRR <- dplyr::select(G1_M_IRR, -c("Gender", "Domain", "Action", "Form", "Group"))
-# G1_M_IRR <- data.frame(G1_M_IRR,check.names = TRUE)
+# G4_M_IRR <- dplyr::select(G4_M_IRR, -c("Gender", "Domain", "Action", "Form", "Group"))
+# G4_M_IRR <- data.frame(G4_M_IRR,check.names = TRUE)
 # 
 # #-------------------- Inter rater test
 # 
 # # Assuming your data frame is called "my_data"
 # # Compute inter-rater reliability coefficients using alpha() function for each item
-# reliabilities <- apply(G1_M_IRR[, 2:19], 2, alpha, check.keys = FALSE)
+# reliabilities <- apply(G4_M_IRR[, 2:19], 2, alpha, check.keys = FALSE)
 # 
 # # Add the SentenceType column back to the output
-# reliabilities_with_items <- cbind(SentenceType = G1_M_IRR$SentenceType, reliabilities)
+# reliabilities_with_items <- cbind(SentenceType = G4_M_IRR$SentenceType, reliabilities)
 # 
 # # Print the reliability coefficients for each item
 # print(reliabilities)
@@ -129,7 +301,7 @@ write.csv(mydata_summary_G1_AD,file = 'summary_G1_AD', raw = TRUE )
 # library(DescTools)
 # 
 # # Calculate the mode of each row (subject)
-# modes <- apply(G1_M_IRR[, 2:19], 1, mode)
+# modes <- apply(G4_M_IRR[, 2:19], 1, mode)
 # 
 # # Print the modes for each subject
 # print(modes)
@@ -138,7 +310,7 @@ write.csv(mydata_summary_G1_AD,file = 'summary_G1_AD', raw = TRUE )
 # # ----------------------------
 # 
 # # Create a matrix with the number of raters who assigned each rating
-# ratings <- G1_M_IRR[, 2:19]
+# ratings <- G4_M_IRR[, 2:19]
 # rating_matrix <- t(apply(ratings, 1, tabulate, nbins = 5))
 # 
 # # Calculate Fleiss' kappa for each item with 18 raters
