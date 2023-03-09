@@ -16,6 +16,7 @@ library(arm)
 library(forcats)
 library(psych)
 library(stringr)
+library(dplyr)
 # #endregion
 
 
@@ -32,11 +33,21 @@ All_Channal <- setNames(All_Channal, c("value" = "Activation",
                                        "binlable" = "Condition", 
                                        "ERPset" = "Subject"))
 
+# clean data by adding two condtions as columns
+Clean_Channal <- All_Channal %>%
+  mutate(Familiarity_HL = case_when(
+    grepl("H", Condition) ~ "H",
+    grepl("L", Condition) ~ "L",
+    TRUE ~ NA_character_
+  ),
+  TruthValue_FT = case_when(
+    grepl("F", Condition) ~ "F",
+    grepl("T", Condition) ~ "T",
+    TRUE ~ NA_character_
+  ))
 
-factor <- data.frame(factor_data_all)  %>%
-  gather("Condition", "Activation", 1:225, -subject) %>%
-  extract(condition, into = c("Familarity", "TruthValue", "Electrode"), regex = "(\\w+)([\\w\\s]+)_(\\w+)")
-
+# rename subject by num
+Clean_Channal$Subject <- gsub("[^0-9]", " ", Clean_Channal$Subject)
 
 #define the Electrodes into 9 group region
 Electrode_patterns <- c("(?i)AF3|(?i)Fp1|(?i)F7|(?i)F5|(?i)F3|(?i)FT7|(?i)FC5|(?i)FC3", 
@@ -53,13 +64,13 @@ Electrode_patterns <- c("(?i)AF3|(?i)Fp1|(?i)F7|(?i)F5|(?i)F3|(?i)FT7|(?i)FC5|(?
 Value_names <- c("LA", "LC", "LP", "MA",
                  "MC", "MP", "RA", "RC", "RP")
 
-# Load the data and create a new variable for hemisphere
-factor_new <- data.frame(factor) %>%
-  mutate(Electrode = as.factor(Electrode)) %>%
+# create new variable for hemisphere and regions
+Clean_Channal <- data.frame(Clean_Channal) %>%
+  #mutate(Electrode = as.factor(Electrode)) %>%
   mutate(HEM = ifelse(grepl("[13579]", Electrode), "L", "R"))
 
 for (p in Electrode_patterns) {
-  factor_new <- factor_new %>%
+  Clean_Channal <- Clean_Channal %>%
     mutate(REG = ifelse(grepl(Electrode_patterns[1], Electrode), Value_names[1],
                         ifelse(grepl(Electrode_patterns[2], Electrode), Value_names[2],
                                ifelse(grepl(Electrode_patterns[3], Electrode), Value_names[3],
@@ -74,14 +85,13 @@ for (p in Electrode_patterns) {
     
 }
 
-factor_new <- factor_new %>%
-  filter(REG != "other")
+Clean_Channal <- Clean_Channal %>%
+  filter(REG != "Other")
+  subset(Clean_Channal, REG != "Other")
 
-View(factor_new)
+write.csv(Clean_Channal, "clean_data_N400.csv", row.names = TRUE)
 
-write.csv(factor_new, "clean_data_N400.csv", row.names = TRUE)
-
-##### LMM tests
+# LMM tests
   
 # LMM <- lmer(loading ~ Familarity*TruthValue*Electrode + (1|subject), factor)
 # 
@@ -91,33 +101,3 @@ write.csv(factor_new, "clean_data_N400.csv", row.names = TRUE)
 
 
 
-
-##### not used 
-  # gather(key = "subject", value = "value") %>%
-  # separate(condition, c("Familarity", "TruthValue", "Electrode"), sep = c(1,2)) %>%
-  #separate(condition, c("Familarity", "Electrode"), sep = c(1,2)) %>%
-  # mutate(TruthValue = as.factor(TruthValue)) %>%
-  # mutate(TF = fct_relevel(TruthValue, "T")) %>%
-  # mutate(Electrode = as.factor(Electrode)) %>%
-#Eletrode_patterns <- c("AF3|FP1|F7|F5|F3|FT7|FC5|FC3", 
-                       "T7C5|C3|TP7|CP5|CP3",
-                       "P7|P5| P3|PO9|PO7|PO3",
-                       "F1|FZ|F2|FC1|FCZ|FC2",
-                       "C1|CZ|C2|CP1|CPZ|CP2",
-                       "P1|PZ|P2|O1|POZ|O2",
-                       "AF4|FP2|F4|F6|F8|FC4|FC6|FT8",
-                       "C4|C6|T8|CP4|CP6|TP8",
-                       "P4|P6|P8|PO4|PO8|PO10")
-#mutate(REG = ifelse(grepl("AF3|FP1|F7|F5|F3|FT7|FC5|FC3", Electrode), "LA", "other"))
-#####
-#factor_new <- data.frame(factor) %>%
- # mutate(Electrode = as.factor(Electrode)) %>%
- # mutate(HEM = ifelse(grepl("[13579]", Electrode), "L", "R")) %>%
-#for (p in Eletrode_patterns) {
-  #factor_new <- factor_new %>%
-  #mutate(REG = !!paste0("has_", p) := ifelse(grepl(p, Electrode), TRUE, FALSE))
-}
-  # mutate(has_FP_FD_FS = grepl("FP|FD|FS", variables)) %>%
-  # mutate(LA = ifelse(has_FP_FD_FS, TRUE, FALSE))
-  # mutate(!!paste0("has_", p) := ifelse(grepl(p, Electrode), TRUE, FALSE))
-#####
