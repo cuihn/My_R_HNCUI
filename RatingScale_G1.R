@@ -2,11 +2,11 @@
 
 # ---------------------
 # install.packages('lme4') 
-#library(lme4)
+library(lme4)
 # install.packages('lsmeans') 
-#library(emmeans)
+library(emmeans)
 # install.packages("lmerTest") 
-#library(lmerTest)
+library(lmerTest)
 # install.packages("tidyverse") 
 library(tidyverse)
 # install.packages("ggplot2") 
@@ -26,6 +26,8 @@ library(labeling)
 # library(irr)
 # install.packages("openxlsx")
 library(openxlsx)
+# install.packages("scales")
+library(scales)
 
 # --------------------- import data with sentences
 
@@ -101,52 +103,67 @@ merged_data_Q2 <- bind_rows(transposed_data_list2)
 
 
 # merge merged_q1 & q2 into one
-all_rating_clean <- merge(merged_data_Q1,merged_data_Q2, by = c("SentenceType", "Domain", "Action", "Form"))
+# all_rating_clean <- merge(merged_data_Q1,merged_data_Q2, by = c("SentenceType", "Domain", "Action", "Form", unique = TRUE))
 
+all_rating_clean <- merge(merged_data_Q1, merged_data_Q2, by = c("SentenceType", "Domain", "Action", "Form"))
+all_rating_clean <- all_rating_clean[!duplicated(all_rating_clean$SentenceType), ]
 
-# --------------------------- summary for descriptive stats and select High score 
-summary_high_all_rating_clean <- all_rating_clean %>%
-  # filter(Action == "A") %>%
-  # filter(Domain == "D") %>%
-  group_by(SentenceType, Domain, Action, Form) %>%
-  summarise(Q1_mean_score = mean(Rating_Q1),
-            Q1_median_score = median(Rating_Q1),
-            Q1_q1 = quantile(Rating_Q1, 0.25),
-            Q1_q3 = quantile(Rating_Q1, 0.75),
-            median_range = Q1_q3 - Q1_q1,
-            Q1_sd_score = sd(Rating_Q1),
-            Q1_min_score = min(Rating_Q1),
-            Q1_max_score = max(Rating_Q1),
-            Q1_pct_1 = mean(Rating_Q1 == 1),
-            Q1_pct_2 = mean(Rating_Q1 == 2),
-            Q1_pct_3 = mean(Rating_Q1 == 3),
-            Q1_pct_4 = mean(Rating_Q1 == 4),
-            Q1_pct_5 = mean(Rating_Q1 == 5),
-            Q1_total_pct_4_5 = (mean(Rating_Q1 == 4) + mean(Rating_Q1 == 5)) * 100, 
-            Q2_mean_score = mean(Rating_Q2),
-            Q2_median_score = median(Rating_Q2),
-            Q2_q1 = quantile(Rating_Q2, 0.25),
-            Q2_q3 = quantile(Rating_Q2, 0.75),
-            Q2_median_range = Q2_q3 - Q2_q1,
-            Q2_sd_score = sd(Rating_Q2),
-            Q2_min_score = min(Rating_Q2),
-            Q2_max_score = max(Rating_Q2),
-            Q2_pct_1 = mean(Rating_Q2 == 1),
-            Q2_pct_2 = mean(Rating_Q2 == 2),
-            Q2_pct_3 = mean(Rating_Q2 == 3),
-            Q2_pct_4 = mean(Rating_Q2 == 4),
-            Q2_total_pct_3_4 = (mean(Rating_Q2 == 3) + mean(Rating_Q2 == 4)) * 100) %>%
-  filter(Q1_total_pct_4_5 >= 80 & Q2_total_pct_3_4 >= 70)
+# 
+# write.xlsx(all_rating_clean, file = "all_rating_clean.xlsx")
+# 
+# 
+# 
+# summary_all_rating_clean <- all_rating_clean %>%
+#   group_by(SentenceType, Domain, Action, Form, ID, Age, Rating_Q2) %>%
+#   summarise(mean_score = mean(Rating_Q1),
+#             median_score = median(Rating_Q1),
+#             q1 = quantile(Rating_Q1, 0.25),
+#             q3 = quantile(Rating_Q1, 0.75),
+#             median_range = q3 - q1,
+#             sd_score = sd(Rating_Q1, na.rm = TRUE),
+#             min_score = min(Rating_Q1),
+#             max_score = max(Rating_Q1),
+#             pct_1 = round(mean(Rating_Q1 == 1) * 100),
+#             pct_2 = round(mean(Rating_Q1 == 2) * 100),
+#             pct_3 = round(mean(Rating_Q1 == 3) * 100),
+#             pct_4 = round(mean(Rating_Q1 == 4) * 100),
+#             pct_5 = round(mean(Rating_Q1 == 5) * 100)) %>%
+#   filter((pct_1 + pct_2) >= 80) # simplify the filter condition
+# 
+# 
+# 
+# summary_all_rating_clean <- all_rating_clean %>%
+#   group_by(SentenceType, Domain, Action, Form, ID, Age) %>%
+#   summarise(mean_score = mean(Rating_Q1),
+#             median_score = median(Rating_Q1),
+#             q1 <- quantile(Rating_Q1, 0.25),
+#             q3 <- quantile(Rating_Q1, 0.75),
+#             median_range <- q3 - q1,
+#             sd_score = sd(Rating_Q1),
+#             min_score = min(Rating_Q1),
+#             max_score = max(Rating_Q1),
+#             pct_1 = mean(Rating_Q1 == 1),
+#             pct_2 = mean(Rating_Q1 == 2),
+#             pct_3 = mean(Rating_Q1 == 3),
+#             pct_4 = mean(Rating_Q1 == 4),
+#             pct_5 = mean(Rating_Q1 == 5),
+#             total_pct_1_2 = (mean(Rating_Q1 == 1) + mean(Rating_Q1 == 2)) * 100) %>%
+#   filter(total_pct_1_2 >= 80)
+# 
+# 
+# 
+# # summary_high_all_rating_clean <- summary_high_all_rating_clean %>%
+# #   mutate(across(Q1_pct_1:Q2_total_pct_3_4, percent_format(scale = 100)))
 
 
 
 # Merge all data frames in the list by SentenceType
-summary_high_all_rating_clean <- merge(summary_high_all_rating_clean, all_rating_raw, by = "SentenceType", all.x = TRUE) %>%
-  filter(!is.na(Q1_mean_score)) %>%
-  inner_join(all_rating_clean, by = "SentenceType")
+summary_all_rating_clean <- merge(all_rating_clean, all_rating_raw, by = "SentenceType", all.x = TRUE) %>%
+  #filter(!is.na(Q1_mean_score)) %>%
+  inner_join(all_rating_clean, by = "SentenceType",multiple = "all")
 
 # write out results
-write.xlsx(summary_high_all_rating_clean,file = 'summary_high_all_rating_clean.xlsx')
+write.xlsx(summary_all_rating_clean,file = 'summary_all_rating_clean.xlsx')
 
 
 
