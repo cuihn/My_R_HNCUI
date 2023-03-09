@@ -19,13 +19,22 @@ library(stringr)
 # #endregion
 
 
-# model including all channels and regions of intrestes based on previous studies
+# model including all channels and regions of interests based on previous studies
 
-#import data
-factor_data_all <- read.delim('KNOC_critical_N400_dataForLMM.txt')
+#import data from ERPlab generated dataframe in long format
+All_Channal <- read.delim('mean_amplitude_N400_peakLatencyDetection_ALLCHA_20230309.txt')
+
+# rename variable names
+All_Channal <- setNames(All_Channal, c("value" = "Activation", 
+                                       "chindex" = "ChaNum",
+                                       "chlabel" = "Electrode", 
+                                       "bini" = "BinNum",
+                                       "binlable" = "Condition", 
+                                       "ERPset" = "Subject"))
+
 
 factor <- data.frame(factor_data_all)  %>%
-  gather("condition", "loading", 1:225, -subject) %>%
+  gather("Condition", "Activation", 1:225, -subject) %>%
   extract(condition, into = c("Familarity", "TruthValue", "Electrode"), regex = "(\\w+)([\\w\\s]+)_(\\w+)")
 
 
