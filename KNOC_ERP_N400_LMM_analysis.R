@@ -1,26 +1,19 @@
 
 # Analysis of ERPs data from a Knowledge-belief attribution experiment
+# model including all channels and regions of interests based on previous studies
 
-# #region
-# install.packages('lme4')
-library(lme4)
-# install.packages('lsmeans')
+# library(lme4)
 library(emmeans)
-# install.packages("lmerTest")
 library(lmerTest)
-# install.packages("tidyverse")
 library(tidyverse)
-# install.packages("ggplot2")
 library(ggplot2)
 library(arm)
 library(forcats)
 library(psych)
 library(stringr)
 library(dplyr)
-# #endregion
-
-
-# model including all channels and regions of interests based on previous studies
+# install.packages("lmerTest")
+library(lmerTest)
 
 #import data from ERPlab generated dataframe in long format
 All_Channal <- read.delim('mean_amplitude_N400_peakLatencyDetection_ALLCHA_20230309.txt')
@@ -33,14 +26,14 @@ All_Channal <- setNames(All_Channal, c("value" = "Activation",
                                        "binlable" = "Condition", 
                                        "ERPset" = "Subject"))
 
-# clean data by adding two condtions as columns
+# clean data by adding two manipulated conditions/variables as columns
 Clean_Channal <- All_Channal %>%
-  mutate(Familiarity_HL = case_when(
+  mutate(Familiarity = case_when(
     grepl("H", Condition) ~ "H",
     grepl("L", Condition) ~ "L",
     TRUE ~ NA_character_
   ),
-  TruthValue_FT = case_when(
+  TruthValue = case_when(
     grepl("F", Condition) ~ "F",
     grepl("T", Condition) ~ "T",
     TRUE ~ NA_character_
@@ -85,18 +78,18 @@ for (p in Electrode_patterns) {
     
 }
 
-Clean_Channal <- Clean_Channal %>%
+Clean_Channal <- data.frame (Clean_Channal) %>%
   filter(REG != "Other")
   subset(Clean_Channal, REG != "Other")
 
 write.csv(Clean_Channal, "clean_data_N400.csv", row.names = TRUE)
 
 # LMM tests
-  
-# LMM <- lmer(loading ~ Familarity*TruthValue*Electrode + (1|subject), factor)
-# 
-# summary(LMM)
-# 
+
+LMM <- lmer(Activation ~ Familiarity*TruthValue*HEM*REG + (1|Subject), data = Clean_Channal)
+anova(LMM)
+summary(LMM)
+
 # emmeans(LMM, pairwise ~ TruthValue*TruthValue|Electrode, adjust="tukey")
 
 
