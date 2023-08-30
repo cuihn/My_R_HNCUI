@@ -2,7 +2,7 @@
 # Analysis of ERPs data from a Knowledge-belief attribution experiment
 # model including all channels and regions of interests based on previous studies
 
-# library(lme4)
+library(lme4)
 library(emmeans)
 library(lmerTest)
 library(tidyverse)
@@ -14,6 +14,7 @@ library(stringr)
 library(dplyr)
 # install.packages("lmerTest")
 library(lmerTest)
+# library(lsmeans)
 
 #import data from ERPlab generated dataframe in long format
 All_Channal <- read.delim('mean_amplitude_N400_peakLatencyDetection_ALLCHA_20230309.txt')
@@ -84,11 +85,77 @@ Clean_Channal <- data.frame (Clean_Channal) %>%
 
 write.csv(Clean_Channal, "clean_data_N400.csv", row.names = TRUE)
 
-# LMM tests
+# first LMM model for F tests and values for main and interactions effect
+LMM1 <- lmer(Activation ~ Familiarity*TruthValue*REG + (1|Subject) + (1|Electrode), data = Clean_Channal)
+summary(LMM1)
+anova(LMM1)
+summary(LMM1)$coefficients
 
-LMM <- lmer(Activation ~ Familiarity*TruthValue*HEM*REG + (1|Subject), data = Clean_Channal)
-anova(LMM)
-summary(LMM)
+
+#####
+emmeans(LMM1, pairwise ~ TruthValue:REG, adjust="tukey",pbkrtest.limit = 8052)
+emmeans(LMM1, pairwise ~ Familiarity:REG, adjust="tukey",pbkrtest.limit = 8052)
+emmeans(LMM1, pairwise ~ Familiarity:TruthValue, adjust="tukey",pbkrtest.limit = 8052)
+emmeans(LMM1, pairwise ~ Familiarity:TruthValue:REG, adjust="tukey",pbkrtest.limit = 8052)
+#####
+# Pairwise comparisons for the interaction effect between TruthValue and REG
+pairwise_TV_REG <- emmeans(LMM1, pairwise ~ TruthValue:REG, adjust = "tukey")
+pairwise_TV_REG_summary <- as.data.frame(summary(pairwise_TV_REG, infer = c(TRUE, TRUE), adjust = "tukey"))
+
+# Pairwise comparisons for the interaction effect between Familiarity and REG
+pairwise_F_REG <- emmeans(LMM1, pairwise ~ Familiarity:REG, adjust = "tukey")
+pairwise_F_REG_summary <- as.data.frame(summary(pairwise_F_REG, infer = c(TRUE, TRUE), adjust = "tukey"))
+
+# Pairwise comparisons for the interaction effect between Familiarity and TruthValue
+pairwise_F_TV <- emmeans(LMM1, pairwise ~ Familiarity:TruthValue, adjust = "tukey")
+pairwise_F_TV_summary <- as.data.frame(summary(pairwise_F_TV, infer = c(TRUE, TRUE), adjust = "tukey"))
+
+# Pairwise comparisons for the three-way interaction effect between Familiarity, TruthValue, and REG
+pairwise_F_TV_REG <- emmeans(LMM1, pairwise ~ Familiarity:TruthValue:REG, adjust = "tukey")
+pairwise_F_TV_REG_summary <- as.data.frame(summary(pairwise_F_TV_REG, infer = c(TRUE, TRUE), adjust = "tukey"))
+
+# Create a table with indication of significance
+pairwise_table <- data.frame(
+  Interaction = c("TruthValue:REG", "Familiarity:REG", "Familiarity:TruthValue", "Familiarity:TruthValue:REG"),
+  Pairwise_Results = c(pairwise_TV_REG_summary$contrasts, pairwise_F_REG_summary$contrasts, pairwise_F_TV_summary$contrasts, pairwise_F_TV_REG_summary$contrasts),
+  p_value = c(pairwise_TV_REG_summary$p.value, pairwise_F_REG_summary$p.value, pairwise_F_TV_summary$p.value, pairwise_F_TV_REG_summary$p.value),
+  Significance = c(ifelse(pairwise_TV_REG_summary$p.value < 0.05, "*", ""), ifelse(pairwise_F_REG_summary$p.value < 0.05, "*", ""), ifelse(pairwise_F_TV_summary$p.value < 0.05, "*", ""), ifelse(pairwise_F_TV_REG_summary$p.value < 0.05, "*", ""))
+)
+
+# Print the pairwise table
+print(pairwise_table)
+# write out the pairwise table
+write.csv(pairwise_TV_REG,"pairwise_table.csv")
+
+# # Compute the estimated marginal means and pairwise comparisons (t-tests)
+# emmeans_LMM <- emmeans(LMM1, c("TruthValue", "Familiarity"), type = "response", pbkrtest.limit = 8052, lmerTest.limit = 8052)
+# 
+# # Get the pairwise comparisons for the interaction effect between REG and TruthValue
+# emmeans_interaction_REG_TV <- emmeans(emmeans_LMM, pairwise ~ TruthValue | REG)
+# 
+# # Get the pairwise comparisons for the interaction effect between REG and Familiarity
+# emmeans_interaction_REG_F <- emmeans(emmeans_LMM, pairwise ~ Familiarity | REG)
+# 
+# # Extract the results table for each comparison
+# emmeans_table_REG_TV <- as.data.frame(summary(emmeans_interaction_REG_TV, infer = c(TRUE, TRUE), adjust = "tukey"))
+# emmeans_table_REG_F <- as.data.frame(summary(emmeans_interaction_REG_F, infer = c(TRUE, TRUE), adjust = "tukey"))
+# 
+# # Extract the T-values and Cohen's d from the table for each comparison
+# t_values_REG_TV <- emmeans_table_REG_TV[, c("contrast", "df", "t.ratio", "p.value")]
+# cohen_d_REG_TV <- emmeans_table_REG_TV[, "effsize"]
+# t_values_REG_F <- emmeans_table_REG_F[, c("contrast", "df", "t.ratio", "p.value")]
+# cohen_d_REG_F <- emmeans_table_REG_F[, "effsize"]
+# 
+
+# Get the summary output as a character vector
+summary_LMM1 <- capture.output(summary(LMM1), anova(LMM1))
+write.csv(summary_LMM1,"summary_LMM1.csv")
+
+
+# # second LMM model
+# LMM2 <- lmer(Activation ~ Familiarity*TruthValue*HEM + (1|Subject), data = Clean_Channal)
+# summary(LMM2)
+# anova(LMM2)
 
 # emmeans(LMM, pairwise ~ TruthValue*TruthValue|Electrode, adjust="tukey")
 
