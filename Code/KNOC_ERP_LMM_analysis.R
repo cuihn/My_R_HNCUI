@@ -1,7 +1,8 @@
+# Analysis of ERPs data (v2) from a Knowledge-belief attribution experiment
+# model including all channels and regions of interests based on previous studies 
 
-# Analysis of ERPs data from a Knowledge-belief attribution experiment
-# model including all channels and regions of interests based on previous studies
 
+# Import libs -------------------------------------------------------------
 library(lme4)
 library(emmeans)
 library(lmerTest)
@@ -16,8 +17,11 @@ library(dplyr)
 library(lmerTest)
 # library(lsmeans)
 
+# set work directory ------------------------------------------------------
+setwd('/Users/hainingcui/Dropbox/Trying/EEG_KNOC_Analysis/KNOC_HN_ERP_LPC_analysis_v2')
+
 #import data from ERPlab generated dataframe in long format
-All_Channal <- read.delim('mean_amplitude_N400_peakLatencyDetection_ALLCHA_20230309.txt')
+All_Channal <- read.delim('20230901_KNOC_ERP_LPC_600ms_1000ms_raw.txt')
 
 # rename variable names
 All_Channal <- setNames(All_Channal, c("value" = "Activation", 
@@ -26,8 +30,8 @@ All_Channal <- setNames(All_Channal, c("value" = "Activation",
                                        "bini" = "BinNum",
                                        "binlable" = "Condition", 
                                        "ERPset" = "Subject"))
-
-# clean data by adding two manipulated conditions/variables as columns
+# clean data  -------------------------------------------------------------
+# adding two manipulated conditions/variables as columns
 Clean_Channal <- All_Channal %>%
   mutate(Familiarity = case_when(
     grepl("H", Condition) ~ "H",
@@ -83,21 +87,32 @@ Clean_Channal <- data.frame (Clean_Channal) %>%
   filter(REG != "Other")
   subset(Clean_Channal, REG != "Other")
 
-write.csv(Clean_Channal, "clean_data_N400.csv", row.names = TRUE)
+write.csv(Clean_Channal, "clean_data_N400_v2.csv", row.names = TRUE)
 
+
+# summary ---------------------------------------------------------
+
+
+
+# first LMM model ---------------------------------------------------------
 # first LMM model for F tests and values for main and interactions effect
-LMM1 <- lmer(Activation ~ Familiarity*TruthValue*REG + (1|Subject) + (1|Electrode), data = Clean_Channal)
+
+LMM1 <- lmer(Activation ~ (Familiarity+TruthValue+REG)^2 + (1|Subject) + (1|Electrode), data = Clean_Channal)
 summary(LMM1)
 anova(LMM1)
 summary(LMM1)$coefficients
 
+# Get the summary output as a character vector
+summary_LMM1 <- capture.output(summary(LMM1), anova(LMM1))
+write.csv(summary_LMM1,"summary_LMM1__LPC_v2.csv")
 
-#####
-emmeans(LMM1, pairwise ~ TruthValue:REG, adjust="tukey",pbkrtest.limit = 8052)
-emmeans(LMM1, pairwise ~ Familiarity:REG, adjust="tukey",pbkrtest.limit = 8052)
-emmeans(LMM1, pairwise ~ Familiarity:TruthValue, adjust="tukey",pbkrtest.limit = 8052)
-emmeans(LMM1, pairwise ~ Familiarity:TruthValue:REG, adjust="tukey",pbkrtest.limit = 8052)
-#####
+# t-test (pairwise comparison) ------------------------------------------------------------------
+# t-test for direction of statistical significance 
+emmeans(LMM1, pairwise ~ TruthValue:REG, adjust="tukey",pbkrtest.limit = 7808)
+emmeans(LMM1, pairwise ~ Familiarity:REG, adjust="tukey",pbkrtest.limit = 7808)
+emmeans(LMM1, pairwise ~ Familiarity:TruthValue, adjust="tukey",pbkrtest.limit = 7808)
+emmeans(LMM1, pairwise ~ Familiarity:TruthValue:REG, adjust="tukey",pbkrtest.limit = 7808)
+
 # Pairwise comparisons for the interaction effect between TruthValue and REG
 pairwise_TV_REG <- emmeans(LMM1, pairwise ~ TruthValue:REG, adjust = "tukey")
 pairwise_TV_REG_summary <- as.data.frame(summary(pairwise_TV_REG, infer = c(TRUE, TRUE), adjust = "tukey"))
@@ -127,7 +142,7 @@ print(pairwise_table)
 # write out the pairwise table
 write.csv(pairwise_TV_REG,"pairwise_table.csv")
 
-# # Compute the estimated marginal means and pairwise comparisons (t-tests)
+##### Compute the estimated marginal means and pairwise comparisons (t-tests)
 # emmeans_LMM <- emmeans(LMM1, c("TruthValue", "Familiarity"), type = "response", pbkrtest.limit = 8052, lmerTest.limit = 8052)
 # 
 # # Get the pairwise comparisons for the interaction effect between REG and TruthValue
@@ -145,19 +160,10 @@ write.csv(pairwise_TV_REG,"pairwise_table.csv")
 # cohen_d_REG_TV <- emmeans_table_REG_TV[, "effsize"]
 # t_values_REG_F <- emmeans_table_REG_F[, c("contrast", "df", "t.ratio", "p.value")]
 # cohen_d_REG_F <- emmeans_table_REG_F[, "effsize"]
-# 
 
-# Get the summary output as a character vector
-summary_LMM1 <- capture.output(summary(LMM1), anova(LMM1))
-write.csv(summary_LMM1,"summary_LMM1.csv")
+# Visulazation ERPs -------------------------------------------------------
 
 
-# # second LMM model
-# LMM2 <- lmer(Activation ~ Familiarity*TruthValue*HEM + (1|Subject), data = Clean_Channal)
-# summary(LMM2)
-# anova(LMM2)
-
-# emmeans(LMM, pairwise ~ TruthValue*TruthValue|Electrode, adjust="tukey")
 
 
 
