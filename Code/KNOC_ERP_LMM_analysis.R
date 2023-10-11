@@ -1,6 +1,12 @@
 # Analysis of ERPs data (v2) from a Knowledge-belief attribution experiment
 # model including all channels and regions of interests based on previous studies 
 
+# Install pak -------------------------------------------------------------
+# install.packages("lmerTest")
+# library(lsmeans)
+# install.packages("devtools")
+# install.packages
+# install.packages("purrr")
 
 # Import libs -------------------------------------------------------------
 library(lme4)
@@ -13,15 +19,14 @@ library(forcats)
 library(psych)
 library(stringr)
 library(dplyr)
-# install.packages("lmerTest")
 library(lmerTest)
-# library(lsmeans)
+library(erpscope)
 
 # set work directory ------------------------------------------------------
-setwd('/Users/hainingcui/Dropbox/Trying/EEG_KNOC_Analysis/KNOC_HN_ERP_LPC_analysis_v2')
+setwd('/Users/hainingcui/Dropbox/Trying/EEG_KNOC_Analysis/KNOC_HN_ERP_N400_analysis_v2')
 
 #import data from ERPlab generated dataframe in long format
-All_Channal <- read.delim('20230901_KNOC_ERP_LPC_600ms_1000ms_raw.txt')
+All_Channal <- read.delim('20230901_KNOC_N400_300ms_500ms_mean_raw.txt')
 
 # rename variable names
 All_Channal <- setNames(All_Channal, c("value" = "Activation", 
@@ -104,43 +109,121 @@ summary(LMM1)$coefficients
 
 # Get the summary output as a character vector
 summary_LMM1 <- capture.output(summary(LMM1), anova(LMM1))
-write.csv(summary_LMM1,"summary_LMM1__LPC_v2.csv")
+write.csv(summary_LMM1,"summary_LMM1_N400_v2.csv")
 
-# t-test (pairwise comparison) ------------------------------------------------------------------
+# t-test (pairwise comparison) Estimated marginal means ------------------------------------------------------------------
 # t-test for direction of statistical significance 
-emmeans(LMM1, pairwise ~ TruthValue:REG, adjust="tukey",pbkrtest.limit = 7808)
-emmeans(LMM1, pairwise ~ Familiarity:REG, adjust="tukey",pbkrtest.limit = 7808)
-emmeans(LMM1, pairwise ~ Familiarity:TruthValue, adjust="tukey",pbkrtest.limit = 7808)
-emmeans(LMM1, pairwise ~ Familiarity:TruthValue:REG, adjust="tukey",pbkrtest.limit = 7808)
 
-# Pairwise comparisons for the interaction effect between TruthValue and REG
-pairwise_TV_REG <- emmeans(LMM1, pairwise ~ TruthValue:REG, adjust = "tukey")
-pairwise_TV_REG_summary <- as.data.frame(summary(pairwise_TV_REG, infer = c(TRUE, TRUE), adjust = "tukey"))
+# main effect on Truth value ----------------------------------------------
 
-# Pairwise comparisons for the interaction effect between Familiarity and REG
-pairwise_F_REG <- emmeans(LMM1, pairwise ~ Familiarity:REG, adjust = "tukey")
-pairwise_F_REG_summary <- as.data.frame(summary(pairwise_F_REG, infer = c(TRUE, TRUE), adjust = "tukey"))
+(p_emm1 <-emmeans(LMM1,~TruthValue, pbkrtest.limit = 7808) %>% pairs(adjust="Tukey", side = "="))
 
-# Pairwise comparisons for the interaction effect between Familiarity and TruthValue
-pairwise_F_TV <- emmeans(LMM1, pairwise ~ Familiarity:TruthValue, adjust = "tukey")
-pairwise_F_TV_summary <- as.data.frame(summary(pairwise_F_TV, infer = c(TRUE, TRUE), adjust = "tukey"))
+## Effect size
+(emm1<-emmeans(LMM1,~TruthValue, pbkrtest.limit = 7808))
+(eff1<-eff_size(emm1, sigma = sigma(LMM1), edf = df.residual(LMM1)))
+# Negligible [0,0.2)
+# Small [0.2, 0.5)
+# Medium [0.5, 0.8)
+# Large [0.8, inf)
 
-# Pairwise comparisons for the three-way interaction effect between Familiarity, TruthValue, and REG
-pairwise_F_TV_REG <- emmeans(LMM1, pairwise ~ Familiarity:TruthValue:REG, adjust = "tukey")
-pairwise_F_TV_REG_summary <- as.data.frame(summary(pairwise_F_TV_REG, infer = c(TRUE, TRUE), adjust = "tukey"))
+## Output
+(CI_emm1<-confint(p_emm1))
+p_emm1<-as.data.frame(p_emm1)
+eff1<-as.data.frame(eff1)
+output1<-data.frame(p_emm1$contrast,round(p_emm1$estimate,1),round(CI_emm1$lower.CL,1),
+                    round(CI_emm1$upper.CL,1),round(p_emm1$p.value,3),round(eff1$effect.size,2))
 
-# Create a table with indication of significance
-pairwise_table <- data.frame(
-  Interaction = c("TruthValue:REG", "Familiarity:REG", "Familiarity:TruthValue", "Familiarity:TruthValue:REG"),
-  Pairwise_Results = c(pairwise_TV_REG_summary$contrasts, pairwise_F_REG_summary$contrasts, pairwise_F_TV_summary$contrasts, pairwise_F_TV_REG_summary$contrasts),
-  p_value = c(pairwise_TV_REG_summary$p.value, pairwise_F_REG_summary$p.value, pairwise_F_TV_summary$p.value, pairwise_F_TV_REG_summary$p.value),
-  Significance = c(ifelse(pairwise_TV_REG_summary$p.value < 0.05, "*", ""), ifelse(pairwise_F_REG_summary$p.value < 0.05, "*", ""), ifelse(pairwise_F_TV_summary$p.value < 0.05, "*", ""), ifelse(pairwise_F_TV_REG_summary$p.value < 0.05, "*", ""))
-)
+names(output1)<-c("Effect","EMMeans","95% CI (Lower)","95% CI (Upper)","p-value","Effect size")
+output1
 
-# Print the pairwise table
-print(pairwise_table)
-# write out the pairwise table
-write.csv(pairwise_TV_REG,"pairwise_table.csv")
+output1$`p-value`<-ifelse(output1$`p-value`<0.001,"<0.001",round(output1$`p-value`,3))
+
+
+# main effect on Memory strength ------------------------------------------
+(p_emm2 <-emmeans(LMM1,~Familiarity, pbkrtest.limit = 7808) %>% pairs(adjust="Tukey", side = "="))
+
+## Effect size
+(emm2<-emmeans(LMM1,~Familiarity, pbkrtest.limit = 7808))
+(eff2<-eff_size(emm2, sigma = sigma(LMM1), edf = df.residual(LMM1)))
+# Negligible [0,0.2)
+# Small [0.2, 0.5)
+# Medium [0.5, 0.8)
+# Large [0.8, inf)
+
+## Output
+(CI_emm2<-confint(p_emm2))
+p_emm2<-as.data.frame(p_emm2)
+eff2<-as.data.frame(eff2)
+output2<-data.frame(p_emm2$contrast,round(p_emm2$estimate,1),round(CI_emm2$lower.CL,1),
+                    round(CI_emm2$upper.CL,1),round(p_emm2$p.value,3),round(eff2$effect.size,2))
+
+names(output2)<-c("Effect","EMMeans","95% CI (Lower)","95% CI (Upper)","p-value","Effect size")
+output2
+
+output2$`p-value`<-ifelse(output1$`p-value`<0.001,"<0.001",round(output1$`p-value`,3))
+
+# simple main effect  ---------------------------------------------------
+
+
+
+
+
+
+
+
+
+
+#pairwise_TV_REG <- emmeans(LMM1, pairwise ~ TruthValue:REG, adjust="tukey",pbkrtest.limit = 7808)
+#pairwise_TV_REG_summary <- as.data.frame(summary(pairwise_TV_REG, infer = c(TRUE, TRUE), adjust = "sidak"))
+#summary_result <- summary(pairwise_TV_REG, infer = c(TRUE, TRUE), adjust = "sidak") 
+
+# P_emm1 <- as.data.frame(summary_result)
+# 
+# write.csv(summary_result,"summary_LMM1_N400_pairwise.csv")
+# 
+# pairwise_FA_TV_REG <- emmeans(LMM1, pairwise ~ Familiarity:TruthValue:REG, adjust="tukey",pbkrtest.limit = 7808)
+# summary_result_all <- summary(pairwise_FA_TV_REG, infer = c(TRUE, TRUE), adjust = "sidak")
+# 
+# # Create a table with indication of significance
+# pairwise_table <- data.frame(
+#   Interaction = c("TruthValue:REG", "Familiarity:REG", "Familiarity:TruthValue", "Familiarity:TruthValue:REG"),
+#   Pairwise_Results = c(pairwise_TV_REG_summary$contrasts, pairwise_F_REG_summary$contrasts, pairwise_F_TV_summary$contrasts, pairwise_F_TV_REG_summary$contrasts),
+#   p_value = c(pairwise_TV_REG_summary$p.value, pairwise_F_REG_summary$p.value, pairwise_F_TV_summary$p.value, pairwise_F_TV_REG_summary$p.value),
+#   Significance = c(ifelse(pairwise_TV_REG_summary$p.value < 0.05, "*", ""), ifelse(pairwise_F_REG_summary$p.value < 0.05, "*", ""), ifelse(pairwise_F_TV_summary$p.value < 0.05, "*", ""), ifelse(pairwise_F_TV_REG_summary$p.value < 0.05, "*", ""))
+# )
+# 
+# ####
+# emmeans(LMM1, pairwise ~ Familiarity:REG, adjust="tukey",pbkrtest.limit = 7808)
+# emmeans(LMM1, pairwise ~ Familiarity:TruthValue, adjust="tukey",pbkrtest.limit = 7808)
+# 
+# # Pairwise comparisons for the interaction effect between TruthValue and REG
+# pairwise_TV_REG <- emmeans(LMM1, pairwise ~ TruthValue:REG, adjust = "tukey", pbkrtest.limit = 7808)
+# pairwise_TV_REG_summary <- as.data.frame(summary(pairwise_TV_REG, infer = c(TRUE, TRUE), adjust = "tukey"))
+# 
+# # Pairwise comparisons for the interaction effect between Familiarity and REG
+# pairwise_F_REG <- emmeans(LMM1, pairwise ~ Familiarity:REG, adjust = "tukey")
+# pairwise_F_REG_summary <- as.data.frame(summary(pairwise_F_REG, infer = c(TRUE, TRUE), adjust = "tukey"))
+# 
+# # Pairwise comparisons for the interaction effect between Familiarity and TruthValue
+# pairwise_F_TV <- emmeans(LMM1, pairwise ~ Familiarity:TruthValue, adjust = "tukey")
+# pairwise_F_TV_summary <- as.data.frame(summary(pairwise_F_TV, infer = c(TRUE, TRUE), adjust = "tukey"))
+# 
+# # Pairwise comparisons for the three-way interaction effect between Familiarity, TruthValue, and REG
+# pairwise_F_TV_REG <- emmeans(LMM1, pairwise ~ Familiarity:TruthValue:REG, adjust = "tukey")
+# pairwise_F_TV_REG_summary <- as.data.frame(summary(pairwise_F_TV_REG, infer = c(TRUE, TRUE), adjust = "tukey"))
+# 
+# # Create a table with indication of significance
+# pairwise_table <- data.frame(
+#   Interaction = c("TruthValue:REG", "Familiarity:REG", "Familiarity:TruthValue", "Familiarity:TruthValue:REG"),
+#   Pairwise_Results = c(pairwise_TV_REG_summary$contrasts, pairwise_F_REG_summary$contrasts, pairwise_F_TV_summary$contrasts, pairwise_F_TV_REG_summary$contrasts),
+#   p_value = c(pairwise_TV_REG_summary$p.value, pairwise_F_REG_summary$p.value, pairwise_F_TV_summary$p.value, pairwise_F_TV_REG_summary$p.value),
+#   Significance = c(ifelse(pairwise_TV_REG_summary$p.value < 0.05, "*", ""), ifelse(pairwise_F_REG_summary$p.value < 0.05, "*", ""), ifelse(pairwise_F_TV_summary$p.value < 0.05, "*", ""), ifelse(pairwise_F_TV_REG_summary$p.value < 0.05, "*", ""))
+# )
+# 
+# # Print the pairwise table
+# print(pairwise_table)
+# # write out the pairwise table
+# write.csv(pairwise_TV_REG,"pairwise_table.csv")
 
 ##### Compute the estimated marginal means and pairwise comparisons (t-tests)
 # emmeans_LMM <- emmeans(LMM1, c("TruthValue", "Familiarity"), type = "response", pbkrtest.limit = 8052, lmerTest.limit = 8052)
