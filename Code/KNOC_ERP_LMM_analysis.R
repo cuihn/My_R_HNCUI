@@ -19,10 +19,10 @@ library(forcats)
 library(psych)
 library(stringr)
 library(dplyr)
-library(lmerTest)
-library(erpscope)
+library(erpscope) #ERP visualization, requires to data specification (raw data) with sample rates (2ms in this case)
 
 # set work directory ------------------------------------------------------
+
 setwd('/Users/hainingcui/Dropbox/Trying/EEG_KNOC_Analysis/KNOC_HN_ERP_N400_analysis_v2')
 
 #import data from ERPlab generated dataframe in long format
@@ -35,8 +35,10 @@ All_Channal <- setNames(All_Channal, c("value" = "Activation",
                                        "bini" = "BinNum",
                                        "binlable" = "Condition", 
                                        "ERPset" = "Subject"))
+
 # clean data  -------------------------------------------------------------
 # adding two manipulated conditions/variables as columns
+
 Clean_Channal <- All_Channal %>%
   mutate(Familiarity = case_when(
     grepl("H", Condition) ~ "H",
@@ -94,7 +96,6 @@ Clean_Channal <- data.frame (Clean_Channal) %>%
 
 write.csv(Clean_Channal, "clean_data_N400_v2.csv", row.names = TRUE)
 
-
 # summary ---------------------------------------------------------
 
 
@@ -114,20 +115,20 @@ write.csv(summary_LMM1,"summary_LMM1_N400_v2.csv")
 # t-test (pairwise comparison) Estimated marginal means ------------------------------------------------------------------
 # t-test for direction of statistical significance 
 
-# main effect on Truth value ----------------------------------------------
+# simple effect on level of Truth value collapsed on Memory strength and REG----------------------------------------------
 
-(p_emm1 <-emmeans(LMM1,~TruthValue, pbkrtest.limit = 7808) %>% pairs(adjust="Tukey", side = "="))
+(p_emm1 <- emmeans(LMM1,~TruthValue, pbkrtest.limit = 7808) %>% pairs(adjust="Tukey", side = "="))
 
 ## Effect size
-(emm1<-emmeans(LMM1,~TruthValue, pbkrtest.limit = 7808))
-(eff1<-eff_size(emm1, sigma = sigma(LMM1), edf = df.residual(LMM1)))
+(emm1 <- emmeans(LMM1,~TruthValue, pbkrtest.limit = 7808))
+(eff1 <- eff_size(emm1, sigma = sigma(LMM1), edf = df.residual(LMM1)))
 # Negligible [0,0.2)
 # Small [0.2, 0.5)
 # Medium [0.5, 0.8)
 # Large [0.8, inf)
 
 ## Output
-(CI_emm1<-confint(p_emm1))
+(CI_emm1 <- confint(p_emm1))
 p_emm1<-as.data.frame(p_emm1)
 eff1<-as.data.frame(eff1)
 output1<-data.frame(p_emm1$contrast,round(p_emm1$estimate,1),round(CI_emm1$lower.CL,1),
@@ -135,11 +136,10 @@ output1<-data.frame(p_emm1$contrast,round(p_emm1$estimate,1),round(CI_emm1$lower
 
 names(output1)<-c("Effect","EMMeans","95% CI (Lower)","95% CI (Upper)","p-value","Effect size")
 output1
-
+# correct p value
 output1$`p-value`<-ifelse(output1$`p-value`<0.001,"<0.001",round(output1$`p-value`,3))
 
-
-# main effect on Memory strength ------------------------------------------
+# simple effect on level of Memory strength collapsed on Truth Value and REG ------------------------------------------
 (p_emm2 <-emmeans(LMM1,~Familiarity, pbkrtest.limit = 7808) %>% pairs(adjust="Tukey", side = "="))
 
 ## Effect size
@@ -160,89 +160,106 @@ output2<-data.frame(p_emm2$contrast,round(p_emm2$estimate,1),round(CI_emm2$lower
 names(output2)<-c("Effect","EMMeans","95% CI (Lower)","95% CI (Upper)","p-value","Effect size")
 output2
 
-output2$`p-value`<-ifelse(output1$`p-value`<0.001,"<0.001",round(output1$`p-value`,3))
+output2$`p-value`<-ifelse(output2$`p-value`<0.001,"<0.001",round(output2$`p-value`,3))
 
-# simple main effect  ---------------------------------------------------
+# simple effect between Truth Value and REG collapsed on memory strength (familiarity)  --------------------------------------------------
+
+(p_emm3 <-emmeans(LMM1,~TruthValue:REG, pbkrtest.limit = 7808) %>% pairs(adjust="Tukey", side = "="))
+
+## Effect size
+(emm3<-emmeans(LMM1,~TruthValue:REG, pbkrtest.limit = 7808))
+(eff3<-eff_size(emm3, sigma = sigma(LMM1), edf = df.residual(LMM1)))
+# Negligible [0,0.2)
+# Small [0.2, 0.5)
+# Medium [0.5, 0.8)
+# Large [0.8, inf)
+
+## Output
+(CI_emm3<-confint(p_emm3))
+p_emm3<-as.data.frame(p_emm3)
+eff3<-as.data.frame(eff3)
+output3<-data.frame(p_emm3$contrast,round(p_emm3$estimate,1),round(CI_emm3$lower.CL,1),
+                    round(CI_emm3$upper.CL,1),round(p_emm3$p.value,3),round(eff3$effect.size,2))
+
+names(output3)<-c("Effect","EMMeans","95% CI (Lower)","95% CI (Upper)","p-value","Effect size")
+output3
+
+output3$`p-value`<-ifelse(output3$`p-value`<0.001,"<0.001",round(output3$`p-value`,3))
+
+## Effect size
+(emm4<-emmeans(LMM1,~Familiarity:REG, pbkrtest.limit = 7808))
+(eff4<-eff_size(emm4, sigma = sigma(LMM1), edf = df.residual(LMM1)))
+# Negligible [0,0.2)
+# Small [0.2, 0.5)
+# Medium [0.5, 0.8)
+# Large [0.8, inf)
+
+## Output
+(CI_emm4<-confint(p_emm4))
+p_emm4<-as.data.frame(p_emm4)
+eff4<-as.data.frame(eff4)
+output4<-data.frame(p_emm4$contrast,round(p_emm4$estimate,1),round(CI_emm4$lower.CL,1),
+                    round(CI_emm4$upper.CL,1),round(p_emm4$p.value,3),round(eff4$effect.size,2))
+
+names(output4)<-c("Effect","EMMeans","95% CI (Lower)","95% CI (Upper)","p-value","Effect size")
+output4
+
+output4$`p-value`<-ifelse(output4$`p-value`<0.001,"<0.001",round(output4$`p-value`,3))
 
 
+# simple effect between Memory Strength, Truth Value, and REG  --------------------------------------------------
+
+(p_emm5 <-emmeans(LMM1,~Familiarity:TruthValue:REG, pbkrtest.limit = 7808) %>% pairs(adjust="Tukey", side = "="))
+
+## Effect size
+(emm5<-emmeans(LMM1,~Familiarity:TruthValue:REG, pbkrtest.limit = 7808)) # nolint: infix_spaces_linter.
+(eff5<-eff_size(emm5, sigma = sigma(LMM1), edf = df.residual(LMM1)))
+# Negligible [0,0.2)
+# Small [0.2, 0.5)
+# Medium [0.5, 0.8)
+# Large [0.8, inf)
+
+## Output
+(CI_emm5<-confint(p_emm5))
+p_emm5<-as.data.frame(p_emm5)
+eff5<-as.data.frame(eff5)
+output5<-data.frame(p_emm5$contrast,round(p_emm5$estimate,1),round(CI_emm5$lower.CL,1),
+                    round(CI_emm5$upper.CL,1),round(p_emm5$p.value,3),round(eff5$effect.size,2))
+
+names(output5)<-c("Effect","EMMeans","95% CI (Lower)","95% CI (Upper)","p-value","Effect size")
+output5
+
+output5$`p-value`<-ifelse(output5$`p-value`<0.001,"<0.001",round(output5$`p-value`,3))
+
+# simple effect for testing the interaction between Memory Strength and Truth Value collapsed on REG  --------------------------------------------------
+
+(p_emm6 <-emmeans(LMM1,~Familiarity:TruthValue, pbkrtest.limit = 7808) %>% pairs(adjust="Tukey", side = "="))
+
+## Effect size
+(emm6<-emmeans(LMM1,~Familiarity:TruthValue, pbkrtest.limit = 7808)) 
+(eff6<-eff_size(emm6, sigma = sigma(LMM1), edf = df.residual(LMM1)))
+# Negligible [0,0.2)
+# Small [0.2, 0.5)
+# Medium [0.5, 0.8)
+# Large [0.8, inf)
+
+## Output
+(CI_emm6<-confint(p_emm6))
+p_emm6<-as.data.frame(p_emm6)
+eff6<-as.data.frame(eff6)
+output6<-data.frame(p_emm6$contrast,round(p_emm6$estimate,1),round(CI_emm6$lower.CL,1),
+                    round(CI_emm6$upper.CL,1),round(p_emm6$p.value,3),round(eff6$effect.size,2))
+
+names(output6)<-c("Effect","EMMeans","95% CI (Lower)","95% CI (Upper)","p-value","Effect size")
+output6
+
+output6$`p-value`<-ifelse(output6$`p-value`<0.001,"<0.001",round(output6$`p-value`,3))
 
 
+# write out post hoc results in one csv -----------------------------------
 
-
-
-
-
-
-#pairwise_TV_REG <- emmeans(LMM1, pairwise ~ TruthValue:REG, adjust="tukey",pbkrtest.limit = 7808)
-#pairwise_TV_REG_summary <- as.data.frame(summary(pairwise_TV_REG, infer = c(TRUE, TRUE), adjust = "sidak"))
-#summary_result <- summary(pairwise_TV_REG, infer = c(TRUE, TRUE), adjust = "sidak") 
-
-# P_emm1 <- as.data.frame(summary_result)
-# 
-# write.csv(summary_result,"summary_LMM1_N400_pairwise.csv")
-# 
-# pairwise_FA_TV_REG <- emmeans(LMM1, pairwise ~ Familiarity:TruthValue:REG, adjust="tukey",pbkrtest.limit = 7808)
-# summary_result_all <- summary(pairwise_FA_TV_REG, infer = c(TRUE, TRUE), adjust = "sidak")
-# 
-# # Create a table with indication of significance
-# pairwise_table <- data.frame(
-#   Interaction = c("TruthValue:REG", "Familiarity:REG", "Familiarity:TruthValue", "Familiarity:TruthValue:REG"),
-#   Pairwise_Results = c(pairwise_TV_REG_summary$contrasts, pairwise_F_REG_summary$contrasts, pairwise_F_TV_summary$contrasts, pairwise_F_TV_REG_summary$contrasts),
-#   p_value = c(pairwise_TV_REG_summary$p.value, pairwise_F_REG_summary$p.value, pairwise_F_TV_summary$p.value, pairwise_F_TV_REG_summary$p.value),
-#   Significance = c(ifelse(pairwise_TV_REG_summary$p.value < 0.05, "*", ""), ifelse(pairwise_F_REG_summary$p.value < 0.05, "*", ""), ifelse(pairwise_F_TV_summary$p.value < 0.05, "*", ""), ifelse(pairwise_F_TV_REG_summary$p.value < 0.05, "*", ""))
-# )
-# 
-# ####
-# emmeans(LMM1, pairwise ~ Familiarity:REG, adjust="tukey",pbkrtest.limit = 7808)
-# emmeans(LMM1, pairwise ~ Familiarity:TruthValue, adjust="tukey",pbkrtest.limit = 7808)
-# 
-# # Pairwise comparisons for the interaction effect between TruthValue and REG
-# pairwise_TV_REG <- emmeans(LMM1, pairwise ~ TruthValue:REG, adjust = "tukey", pbkrtest.limit = 7808)
-# pairwise_TV_REG_summary <- as.data.frame(summary(pairwise_TV_REG, infer = c(TRUE, TRUE), adjust = "tukey"))
-# 
-# # Pairwise comparisons for the interaction effect between Familiarity and REG
-# pairwise_F_REG <- emmeans(LMM1, pairwise ~ Familiarity:REG, adjust = "tukey")
-# pairwise_F_REG_summary <- as.data.frame(summary(pairwise_F_REG, infer = c(TRUE, TRUE), adjust = "tukey"))
-# 
-# # Pairwise comparisons for the interaction effect between Familiarity and TruthValue
-# pairwise_F_TV <- emmeans(LMM1, pairwise ~ Familiarity:TruthValue, adjust = "tukey")
-# pairwise_F_TV_summary <- as.data.frame(summary(pairwise_F_TV, infer = c(TRUE, TRUE), adjust = "tukey"))
-# 
-# # Pairwise comparisons for the three-way interaction effect between Familiarity, TruthValue, and REG
-# pairwise_F_TV_REG <- emmeans(LMM1, pairwise ~ Familiarity:TruthValue:REG, adjust = "tukey")
-# pairwise_F_TV_REG_summary <- as.data.frame(summary(pairwise_F_TV_REG, infer = c(TRUE, TRUE), adjust = "tukey"))
-# 
-# # Create a table with indication of significance
-# pairwise_table <- data.frame(
-#   Interaction = c("TruthValue:REG", "Familiarity:REG", "Familiarity:TruthValue", "Familiarity:TruthValue:REG"),
-#   Pairwise_Results = c(pairwise_TV_REG_summary$contrasts, pairwise_F_REG_summary$contrasts, pairwise_F_TV_summary$contrasts, pairwise_F_TV_REG_summary$contrasts),
-#   p_value = c(pairwise_TV_REG_summary$p.value, pairwise_F_REG_summary$p.value, pairwise_F_TV_summary$p.value, pairwise_F_TV_REG_summary$p.value),
-#   Significance = c(ifelse(pairwise_TV_REG_summary$p.value < 0.05, "*", ""), ifelse(pairwise_F_REG_summary$p.value < 0.05, "*", ""), ifelse(pairwise_F_TV_summary$p.value < 0.05, "*", ""), ifelse(pairwise_F_TV_REG_summary$p.value < 0.05, "*", ""))
-# )
-# 
-# # Print the pairwise table
-# print(pairwise_table)
-# # write out the pairwise table
-# write.csv(pairwise_TV_REG,"pairwise_table.csv")
-
-##### Compute the estimated marginal means and pairwise comparisons (t-tests)
-# emmeans_LMM <- emmeans(LMM1, c("TruthValue", "Familiarity"), type = "response", pbkrtest.limit = 8052, lmerTest.limit = 8052)
-# 
-# # Get the pairwise comparisons for the interaction effect between REG and TruthValue
-# emmeans_interaction_REG_TV <- emmeans(emmeans_LMM, pairwise ~ TruthValue | REG)
-# 
-# # Get the pairwise comparisons for the interaction effect between REG and Familiarity
-# emmeans_interaction_REG_F <- emmeans(emmeans_LMM, pairwise ~ Familiarity | REG)
-# 
-# # Extract the results table for each comparison
-# emmeans_table_REG_TV <- as.data.frame(summary(emmeans_interaction_REG_TV, infer = c(TRUE, TRUE), adjust = "tukey"))
-# emmeans_table_REG_F <- as.data.frame(summary(emmeans_interaction_REG_F, infer = c(TRUE, TRUE), adjust = "tukey"))
-# 
-# # Extract the T-values and Cohen's d from the table for each comparison
-# t_values_REG_TV <- emmeans_table_REG_TV[, c("contrast", "df", "t.ratio", "p.value")]
-# cohen_d_REG_TV <- emmeans_table_REG_TV[, "effsize"]
-# t_values_REG_F <- emmeans_table_REG_F[, c("contrast", "df", "t.ratio", "p.value")]
-# cohen_d_REG_F <- emmeans_table_REG_F[, "effsize"]
+write.csv(rbind(output1,output2,output3,output4,output5,output6), "postHoc_N400_results_P_effectSize.csv")
+write.csv(rbind(p_emm1,p_emm2,p_emm3,p_emm4,p_emm5,p_emm6), "postHoc_N400_t-test_results.csv")
 
 # Visulazation ERPs -------------------------------------------------------
 
