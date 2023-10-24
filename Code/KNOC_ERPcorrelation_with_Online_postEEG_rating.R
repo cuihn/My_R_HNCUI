@@ -52,15 +52,12 @@ online_ratings_1 <- ddply(online_ratings,.(TruthValue,MemoryStrength),summarise,
 # print(missing_count)
 # any_missing <- any(is.na(online_ratings))
 
-# Create the box plot with mean and SD ------------------------------------
-# plotting the data frame
+# Create the boxplot with mean and SD ------------------------------------
 graph4 <- ggplot(online_ratings,
                 aes(x=MemoryStrength, y=Recoded_Response, fill=interaction(TruthValue, MemoryStrength))) +
-  #geom_violin(trim = FALSE) +
   geom_violin(trim = TRUE)+
   facet_grid(~TruthValue) +
   theme_classic() +
-  #geom_line()
   geom_line(data = online_ratings_1, aes(y = val, group = MemoryStrength))
 
 graph4 <- graph4 +stat_summary(fun=mean, geom="point",
@@ -69,32 +66,30 @@ graph4 <- graph4 +stat_summary(fun=mean, geom="point",
 
 print(graph4)
 
-# Add p-value
-graph4 + stat_compare_means()
-
 # perform LMM on the online ratings scales --------------------------------
-# Set "T" as the reference level for "TV"
+# Set "false" as the reference level for "TruthValue"
 online_ratings$TruthValue <- relevel(online_ratings$TruthValue, ref = "False")
 
-# Set "H" as the reference level for "KT"
+# Set "Weak" as the reference level for "MemoryStrength"
 online_ratings$MemoryStrength <- relevel(online_ratings$MemoryStrength, ref = "Weak")
 
-#lmm <- lmer(Recoded_Response ~ 1 + TV + KT +(1|Subject) + (1|Item), data = online_ratings, REML=F)
+lmm <- lmer(Recoded_Response ~ 1 + TruthValue + MemoryStrength +(1|Subject) + (1|Item), data = online_ratings, REML=F)
 
 lmm1 <- lmer(Recoded_Response ~1 +  TruthValue:MemoryStrength + (1|Subject) + (1|Item), data = online_ratings,REML=F)
 
-# lmm2 <- lmer(Recoded_Response ~ 1 + TV + (1|Subject) + (1|Item), data = online_ratings, REML=F)
-# lmm3 <- lmer(Recoded_Response ~1 +  KT + (1|Subject) + (1|Item), data = online_ratings,REML=F)
+lmm2 <- lmer(Recoded_Response ~ 1 + TV + (1|Subject) + (1|Item), data = online_ratings, REML=F)
 
+lmm3 <- lmer(Recoded_Response ~1 +  KT + (1|Subject) + (1|Item), data = online_ratings,REML=F)
 
 # Get the summary output as a character vector
-#summary_lmm <- capture.output(summary(lmm), anova(lmm))
+summary_lmm <- capture.output(summary(lmm), anova(lmm))
+print(summary_lmm)
 summary_lmm1 <- capture.output(summary(lmm1), anova(lmm1))
-#summary_lmm2 <- capture.output(summary(lmm2), anova(lmm2))
-#summary_lmm3 <- capture.output(summary(lmm3), anova(lmm3))
-#write.csv(summary_lmm,"summary_LMM_beh_main.csv")
+print(summary_lmm1)
+summary_lmm2 <- capture.output(summary(lmm2), anova(lmm2))
+summary_lmm3 <- capture.output(summary(lmm3), anova(lmm3))
+write.csv(summary_lmm,"summary_LMM_beh_main.csv")
 write.csv(summary_lmm1,"summary_LMM_beh_interaction.csv")
-
 
 # t-test (pairwise comparison) Estimated marginal means ------------------------------------------------------------------
 # t-test for direction of statistical significance 
@@ -110,7 +105,6 @@ library(emmeans)
 # Small [0.2, 0.5)
 # Medium [0.5, 0.8)
 # Large [0.8, inf)
-
 ## Output
 CI_emm1 <- confint(p_emm1)
 p_emm1<-as.data.frame(p_emm1)
@@ -128,17 +122,17 @@ write.csv(output1, "postHoc_beh_results_P_effectSize.csv")
 write.csv(p_emm1, "postHoc_beh_t-test_results.csv")
 
 
-# perform correlation test on the online ratings and post EEG rati --------
+# perform correlation test on the online ratings and post EEG rating --------
 
 corr.test(factor_data[, 1:4], Posttest[,6:11], adjust = 'none')
 
-# perform correlation test on the online ratings and averaged ERP scores --------
+# perform correlation test on the online ratings and averaged ERP response --------
 
 corr.test(factor_data[, 1:4], Behav_results[,3:6], adjust = 'none')
 
 cor(factor_data[, 1:4], IAT_Dscore$Dscore)
 
-# perform correlation test on the postEEG ratings and averaged ERP scores --------
+# perform correlation test on the postEEG ratings and averaged ERP response --------
 
 corr.test(factor_data[, 1:4], Behav_results[,3:6], adjust = 'none')
 
