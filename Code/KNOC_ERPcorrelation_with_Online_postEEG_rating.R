@@ -12,22 +12,48 @@ library(ggpubr)
 library(ggplot2)
 library(lme4)
 library(dplyr)
-library(plyr)
+#library(plyr)
 
 # load files --------------------------------------------------------------
-
 setwd('/Users/hainingcui/Dropbox/Trying/EEG_KNOC_Analysis/KNOC_HN_Beh_ERP_corrrelation_analysis_v2')
 file_path <- "/Users/hainingcui/Dropbox/Trying/EEG_KNOC_Analysis/KNOC_HN_Beh_ERP_corrrelation_analysis_v2"
 
-# # load ERP data N400, LPC ERP files
-# All_clean_N400 <- read.csv('clean_data_N400_v2.csv')
-# All_clean_LPC <- read.delim('clean_data_LPC_v2.csv')
+# load N400 data, clean, summarize mean
+All_clean_N400 <- read.csv('clean_data_N400_v2.csv')
+colnames(All_clean_N400)[8] <- "MemoryStrength" 
+colnames(All_clean_N400)[2] <- "Activation_N400" 
+All_clean_N400$MemoryStrength[All_clean_N400$MemoryStrength == "H"] <- "Strong"
+All_clean_N400$MemoryStrength[All_clean_N400$MemoryStrength == "L"] <- "Weak"
+All_clean_N400$TruthValue[All_clean_N400$TruthValue == "FALSE"] <- "False"
+All_clean_N400$TruthValue[All_clean_N400$TruthValue == "TRUE"] <- "True"
+All_clean_N400$TruthValue <- factor(All_clean_N400$TruthValue, levels = c("False", "True"))
+All_clean_N400$MemoryStrength <- factor(All_clean_N400$MemoryStrength, levels = c("Strong", "Weak"))
+# summarize the mean and sum of 'Activation_N400' by 'Subjects'
+summary_mean_N400 <- All_clean_N400 %>%
+  group_by(Subject, TruthValue, MemoryStrength) %>%
+  summarize(mean_activation_N400 = mean(Activation_N400))
+
+# load LPC data, clean, summarize mean
+All_clean_LPC <- read.csv('clean_data_LPC_v2.csv')
+colnames(All_clean_LPC)[8] <- "MemoryStrength" 
+colnames(All_clean_LPC)[2] <- "Activation_LPC" 
+All_clean_LPC$MemoryStrength[All_clean_LPC$MemoryStrength == "H"] <- "Strong"
+All_clean_LPC$MemoryStrength[All_clean_LPC$MemoryStrength == "L"] <- "Weak"
+All_clean_LPC$TruthValue[All_clean_LPC$TruthValue == "FALSE"] <- "False"
+All_clean_LPC$TruthValue[All_clean_LPC$TruthValue == "TRUE"] <- "True"
+All_clean_LPC$TruthValue <- factor(All_clean_LPC$TruthValue, levels = c("False", "True"))
+All_clean_LPC$MemoryStrength <- factor(All_clean_LPC$MemoryStrength, levels = c("Strong", "Weak"))
+
+# summarize the mean and sum of 'Activation_LPC' by 'Subjects'
+summary_mean_LPC <- All_clean_LPC %>%
+  group_by(Subject, TruthValue, MemoryStrength) %>%
+  summarize(mean_activation_LPC = mean(Activation_LPC))
+
 # #loading postEEG rating file
 # postEEG_ratings <- read.delim("KNOC_online_post_rating_ave_ForCorrelate.txt")
 
 # load online behavior rating, clean data, and checking missing val --------
 online_ratings <- read.delim("KNOC_EEG_beha_online_neutreal_all2.txt")
-#online_ratings$TV[online_ratings$TV == "WRONG"] <- "F"
 online_ratings$TV[online_ratings$TV == "FF"] <- "False"
 online_ratings$TV[online_ratings$TV == "TT"] <- "True"
 online_ratings$KT[online_ratings$KT == "H"] <- "Strong"
@@ -41,16 +67,21 @@ colnames(online_ratings)[25] <- "MemoryStrength"
 # summary of mean
 online_ratings_1 <- ddply(online_ratings,.(TruthValue,MemoryStrength),summarise, val = mean(Recoded_Response))
 
-# Remove rows with missing values
-#online_ratings <- online_ratings[complete.cases(online_ratings$Recoded_Response), ]
-#online_ratings <- na.omit(online_ratings)
+# calculate the mean and sum of 'Value' by 'Subjects'
+summary_mean_beha <- online_ratings %>%
+  group_by(Subject, TruthValue, MemoryStrength) %>%
+  summarize(mean_rating = mean(Recoded_Response))
+# rename subject columns 
+summary_mean_beha$Subject <- gsub("sub0", "", as.character((summary_mean_beha$Subject)))
+summary_mean_beha$Subject <- gsub("sub", "", as.character((summary_mean_beha$Subject)))
+summary_mean_beha$Subject <- as.numeric(summary_mean_beha$Subject)
+# Print the summarized data
+print(summary_data)
 
-# # Create a logical matrix indicating missing values
-# missing_matrix <- is.na(online_ratings)
-# print(missing_matrix)
-# missing_count <- colSums(missing_matrix)
-# print(missing_count)
-# any_missing <- any(is.na(online_ratings))
+# merge_ERP_beha_mean ----------------------------------------------------
+summary_mean_list <- list(summary_mean_beha, summary_mean_N400, summary_mean_LPC) %>% 
+  reduce(full_join, by= c("Subject", "MemoryStrength", "TruthValue"))  
+summary_mean_all <- data.frame(summary_mean_list)
 
 # Create the boxplot with mean and SD ------------------------------------
 graph4 <- ggplot(online_ratings,
@@ -77,9 +108,9 @@ lmm <- lmer(Recoded_Response ~ 1 + TruthValue + MemoryStrength +(1|Subject) + (1
 
 lmm1 <- lmer(Recoded_Response ~1 +  TruthValue:MemoryStrength + (1|Subject) + (1|Item), data = online_ratings,REML=F)
 
-lmm2 <- lmer(Recoded_Response ~ 1 + TV + (1|Subject) + (1|Item), data = online_ratings, REML=F)
+lmm2 <- lmer(Recoded_Response ~ 1 + TruthValue + (1|Subject) + (1|Item), data = online_ratings, REML=F)
 
-lmm3 <- lmer(Recoded_Response ~1 +  KT + (1|Subject) + (1|Item), data = online_ratings,REML=F)
+lmm3 <- lmer(Recoded_Response ~1 +  MemoryStrength + (1|Subject) + (1|Item), data = online_ratings,REML=F)
 
 # Get the summary output as a character vector
 summary_lmm <- capture.output(summary(lmm), anova(lmm))
@@ -93,7 +124,6 @@ write.csv(summary_lmm1,"summary_LMM_beh_interaction.csv")
 
 # t-test (pairwise comparison) Estimated marginal means ------------------------------------------------------------------
 # t-test for direction of statistical significance 
-
 # simple effect on level of Truth value collapsed on Memory strength (knowledge type) ----------------------------------------------
 library(emmeans)
 (p_emm1 <- emmeans(lmm,~KT:TV, pbkrtest.limit = 4578) %>% pairs(adjust="Tukey", side = "="))
@@ -124,44 +154,44 @@ write.csv(p_emm1, "postHoc_beh_t-test_results.csv")
 
 # perform correlation test on the online ratings and post EEG rating --------
 
-corr.test(factor_data[, 1:4], Posttest[,6:11], adjust = 'none')
+Beha_strong_true <- summary_mean_all$mean_rating[summary_mean_all$TruthValue == "True" & summary_mean_all$MemoryStrength == "Strong"]
+N400_strong_true <- summary_mean_all$mean_activation_N400[summary_mean_all$TruthValue == "True" & summary_mean_all$MemoryStrength == "Strong"]
+LPC_strong_true <- summary_mean_all$mean_activation_LPC[summary_mean_all$TruthValue == "True" & summary_mean_all$MemoryStrength == "Strong"]
 
-# perform correlation test on the online ratings and averaged ERP response --------
+correlate_Beha_N400_strong_true <- corr.test(Beha_strong_true, N400_strong_true, adjust = 'none')
+correlate_Beha_LPC_strong_true <- corr.test(Beha_strong_true, LPC_strong_true, adjust = 'none')
 
-corr.test(factor_data[, 1:4], Behav_results[,3:6], adjust = 'none')
+# perform correlation test on the online ratings and post EEG rating --------
+Beha_weak_true <- summary_mean_all$mean_rating[summary_mean_all$TruthValue == "True" & summary_mean_all$MemoryStrength == "Weak"]
+N400_weak_true <- summary_mean_all$mean_activation_N400[summary_mean_all$TruthValue == "True" & summary_mean_all$MemoryStrength == "Weak"]
+LPC_weak_true <- summary_mean_all$mean_activation_LPC[summary_mean_all$TruthValue == "True" & summary_mean_all$MemoryStrength == "Weak"]
 
-cor(factor_data[, 1:4], IAT_Dscore$Dscore)
-
-# perform correlation test on the postEEG ratings and averaged ERP response --------
-
-corr.test(factor_data[, 1:4], Behav_results[,3:6], adjust = 'none')
-
-cor(factor_data[, 1:4], IAT_Dscore$Dscore)
-
-
-# Create a new variable to represent the combination of Truth_value and Knowledge_type
-online_ratings$conditions <- paste(online_ratings$TV, online_ratings$KT, sep = "_")
-
-# Set the order of the bars
-bar_order <- c("True_Highly Known", "True_Lower Known", "False_Highly Known", "False_Lower Known")
-
-# Create a count of each combination of Group and Recoded_Response
-count_data <- data.frame(table(online_ratings$conditions, online_ratings$Recoded_Response))
-
-# Calculate the average recoded response for each combination of Knowledge_type and Truth_value
-avg_data <- aggregate(Recoded_Response ~ KT + TV, data = online_ratings, FUN = mean)
+correlate_Beha_N400_weak_true <- corr.test(Beha_weak_true, N400_weak_true, adjust = 'none')
+correlate_Beha_LPC_weak_true <- corr.test(Beha_weak_true, LPC_weak_true, adjust = 'none')
 
 
-# Rename the count column
-colnames(count_data) <- c("Conditions", "Recoded_Response", "Count")
+# perform correlation test on the online ratings and post EEG rating --------
+Beha_strong_false <- summary_mean_all$mean_rating[summary_mean_all$TruthValue == "False" & summary_mean_all$MemoryStrength == "Strong"]
+N400_strong_false <- summary_mean_all$mean_activation_N400[summary_mean_all$TruthValue == "False" & summary_mean_all$MemoryStrength == "Strong"]
+LPC_strong_false <- summary_mean_all$mean_activation_LPC[summary_mean_all$TruthValue == "False" & summary_mean_all$MemoryStrength == "Strong"]
 
-# Convert Recoded_Response to factor for correct ordering
-count_data$Recoded_Response <- factor(count_data$Recoded_Response, levels = 1:5)
+correlate_Beha_N400_strong_false <- corr.test(Beha_strong_false, N400_strong_false, adjust = 'none')
+correlate_Beha_LPC_strong_false <- corr.test(Beha_strong_false, LPC_strong_false, adjust = 'none')
 
-# Remove rows with missing values
-count_data <- count_data[complete.cases(count_data), ]
+# perform correlation test on the online ratings and post EEG rating --------
+Beha_weak_false <- summary_mean_all$mean_rating[summary_mean_all$TruthValue == "False" & summary_mean_all$MemoryStrength == "Weak"]
+N400_weak_false <- summary_mean_all$mean_activation_N400[summary_mean_all$TruthValue == "False" & summary_mean_all$MemoryStrength == "Weak"]
+LPC_weak_false <- summary_mean_all$mean_activation_LPC[summary_mean_all$TruthValue == "False" & summary_mean_all$MemoryStrength == "Weak"]
 
+correlate_Beha_N400_weak_false <- corr.test(Beha_weak_false, N400_weak_false, adjust = 'none')
+correlate_Beha_LPC_weak_false <- corr.test(Beha_weak_false, LPC_weak_false, adjust = 'none')
+cor(Beha_weak_false, LPC_weak_false)
 
+# # perform correlation test on the postEEG ratings and averaged ERP response --------
+# 
+# corr.test(factor_data[, 1:4], Behav_results[,3:6], adjust = 'none')
+# 
+# cor(factor_data[, 1:4], IAT_Dscore$Dscore)
 
 
 
