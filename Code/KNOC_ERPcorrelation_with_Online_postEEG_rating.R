@@ -2,6 +2,11 @@
 #install.packages("lme4")
 #install.packages("plyr")
 #install.packages('smplot2')
+#install.packages("rempsyc")
+#install.packages("flextable")
+install.packages("broom")
+install.packages("report")
+install.packages("effectsize")
 
 # Import libs -------------------------------------------------------------
 library(readxl)
@@ -12,6 +17,11 @@ library(ggpubr)
 library(ggplot2)
 library(lme4)
 library(dplyr)
+library(rempsyc)
+library(flextable)
+library(broom)
+library(report)
+library(effectsize)
 
 # load files --------------------------------------------------------------
 setwd('/Users/hainingcui/Dropbox/Trying/EEG_KNOC_Analysis/KNOC_HN_Beh_ERP_corrrelation_analysis_v2')
@@ -19,11 +29,14 @@ file_path <- "/Users/hainingcui/Dropbox/Trying/EEG_KNOC_Analysis/KNOC_HN_Beh_ERP
 
 
 # #load pre-EEG rating score ----------------------------------------------
-pkgs <- c("flextable", "broom", "report", "effectsize")
-install.packages("rempsyc")
-
 pre_EEG_scores <- read_xlsx('KNOC_preEEG_results.xlsx')
 
+pre_EEG_hit_rate <- cbind(pre_EEG_scores[,1:2], pre_EEG_scores[,6:8], pre_EEG_scores[,9:33])
+
+summary(pre_EEG_hit_rate)
+  
+pre_EEG_certainty <- cbind(pre_EEG_scores[,1:2], pre_EEG_scores[,6:8], pre_EEG_scores[, 64:88])
+pre_EEG_peer <- cbind(pre_EEG_scores[,1:2], pre_EEG_scores[,6:8], pre_EEG_scores[, 90:114])
 
 # load N400 data, clean, summarize mean
 All_clean_N400 <- read.csv('clean_data_N400_v2.csv')
