@@ -4,9 +4,9 @@
 #install.packages('smplot2')
 #install.packages("rempsyc")
 #install.packages("flextable")
-install.packages("broom")
-install.packages("report")
-install.packages("effectsize")
+#install.packages("broom")
+#install.packages("report")
+#install.packages("effectsize")
 
 # Import libs -------------------------------------------------------------
 library(readxl)
@@ -23,9 +23,11 @@ library(broom)
 library(report)
 library(effectsize)
 
-# load files --------------------------------------------------------------
-setwd('/Users/hainingcui/Dropbox/Trying/EEG_KNOC_Analysis/KNOC_HN_Beh_ERP_corrrelation_analysis_v2')
-file_path <- "/Users/hainingcui/Dropbox/Trying/EEG_KNOC_Analysis/KNOC_HN_Beh_ERP_corrrelation_analysis_v2"
+# set path --------------------------------------------------------------
+#setwd('/Users/hainingcui/Dropbox/Trying/EEG_KNOC_Analysis/KNOC_HN_Beh_ERP_corrrelation_analysis_v2') #for OS
+setwd('C://Users//hcui8//Dropbox//Trying//EEG_KNOC_Analysis//KNOC_HN_Beh_ERP_corrrelation_analysis_v2') #for windows
+
+file_path <- "C://Users//hcui8//Dropbox//Trying//EEG_KNOC_Analysis//KNOC_HN_Beh_ERP_corrrelation_analysis_v2"
 
 
 # #load pre-EEG rating score ----------------------------------------------
@@ -38,7 +40,9 @@ summary(pre_EEG_hit_rate)
 pre_EEG_certainty <- cbind(pre_EEG_scores[,1:2], pre_EEG_scores[,6:8], pre_EEG_scores[, 64:88])
 pre_EEG_peer <- cbind(pre_EEG_scores[,1:2], pre_EEG_scores[,6:8], pre_EEG_scores[, 90:114])
 
-# load N400 data, clean, summarize mean
+
+# # load N400 data, clean, summarize mean ---------------------------------
+
 All_clean_N400 <- read.csv('clean_data_N400_v2.csv')
 colnames(All_clean_N400)[8] <- "MemoryStrength" 
 colnames(All_clean_N400)[2] <- "Activation_N400" 
@@ -49,12 +53,26 @@ All_clean_N400$TruthValue[All_clean_N400$TruthValue == "TRUE"] <- "True"
 All_clean_N400$TruthValue <- factor(All_clean_N400$TruthValue, levels = c("False", "True"))
 All_clean_N400$MemoryStrength <- factor(All_clean_N400$MemoryStrength, levels = c("Strong", "Weak"))
 
-# summarize the mean and sum of 'Activation_N400' by 'Subjects'
+
+# summarize the mean and sum of 'Activation_N400' by 'Subjects' 'TruthValue', and 'MemoryStrength'
 summary_mean_N400 <- All_clean_N400 %>%
   group_by(Subject, TruthValue, MemoryStrength) %>%
   summarize(mean_activation_N400 = mean(Activation_N400))
 
-# load LPC data, clean, summarize mean
+#subset data Strong_true
+
+summary_mean_N400_ST <- All_clean_N400 %>%
+  filter(TruthValue == "True" & MemoryStrength == "Strong") %>%
+  group_by(Subject, TruthValue, MemoryStrength) %>%
+  summarize(mean_activation_N400 = mean(Activation_N400))
+
+summary_mean_N400_SF <- All_clean_N400 %>%
+  filter(TruthValue == "False" & MemoryStrength == "Strong") %>%
+  group_by(Subject, TruthValue, MemoryStrength) %>%
+  summarize(mean_activation_N400 = mean(Activation_N400))
+
+# # load LPC data, clean, summarize mean ----------------------------------
+
 All_clean_LPC <- read.csv('clean_data_LPC_v2.csv')
 colnames(All_clean_LPC)[8] <- "MemoryStrength" 
 colnames(All_clean_LPC)[2] <- "Activation_LPC" 
@@ -67,6 +85,16 @@ All_clean_LPC$MemoryStrength <- factor(All_clean_LPC$MemoryStrength, levels = c(
 
 # summarize the mean and sum of 'Activation_LPC' by 'Subjects'
 summary_mean_LPC <- All_clean_LPC %>%
+  group_by(Subject, TruthValue, MemoryStrength) %>%
+  summarize(mean_activation_LPC = mean(Activation_LPC))
+
+summary_mean_LPC_ST <- All_clean_LPC %>%
+  filter(TruthValue == "True" & MemoryStrength == "Strong") %>%
+  group_by(Subject, TruthValue, MemoryStrength) %>%
+  summarize(mean_activation_LPC = mean(Activation_LPC))
+
+summary_mean_LPC_SF <- All_clean_LPC %>%
+  filter(TruthValue == "False" & MemoryStrength == "Strong") %>%
   group_by(Subject, TruthValue, MemoryStrength) %>%
   summarize(mean_activation_LPC = mean(Activation_LPC))
 
@@ -96,17 +124,110 @@ print(is_factor <- is.factor(online_ratings$TV))
 colnames(online_ratings)[23] <- "TruthValue" 
 colnames(online_ratings)[25] <- "MemoryStrength" 
 
+# add ambiguity level based on the re-coded response (1&5 least-ambiguous, 2 & 4 as some-ambiguous, 3 as ambiguous)
+# Create a function to determine ambiguity
+classify_ambiguity <- function(value) {
+  if (value %in% c(1, 5)) {
+    return("0")
+  } else if (value %in% c(2, 4, 3)) {
+    return("1")
+  } 
+  else {
+    return("Undefined") # You can modify this according to your needs
+  }
+}
+
+# add the 'Ambiguity" column using mutate
+online_ratings <- online_ratings %>%
+  mutate(Ambiguity = sapply(Recoded_Response,classify_ambiguity))
+
+
+# Create a table with all combinations of Subject, Ambiguity, TruthValue, and MemoryStrength
+all_combinations <- expand.grid(
+  Subject = unique(online_ratings$Subject),
+  Ambiguity = unique(online_ratings$Ambiguity),
+  TruthValue = unique(online_ratings$TruthValue),
+  MemoryStrength = unique(online_ratings$MemoryStrength)
+)
+
+
 # summary of mean and sd ratings scores 
 online_ratings_summary <- online_ratings %>%
   group_by(TruthValue,MemoryStrength) %>%
   summarise(mean_rating = mean(Recoded_Response),
             sd_rating = sd(Recoded_Response)
             )
+# 
+# # calculate the mean and sum of 'Value' by 'Subjects'/per subject/per condition
+# summary_mean_beha <- online_ratings %>%
+#   group_by(Subject,Ambiguity, TruthValue, MemoryStrength) %>%
+#   summarize(mean_rating = mean(Recoded_Response),
+#             count = n())
+# 
+# summary_mean_beha <- online_ratings %>%
+#   group_by(Subject, Ambiguity, TruthValue, MemoryStrength) %>%
+#   add_count() %>%
+#   summarize(mean_rating = mean(Recoded_Response, na.rm = TRUE),
+#             count = n())
 
-# calculate the mean and sum of 'Value' by 'Subjects'/per subject/per condition
-summary_mean_beha <- online_ratings %>%
-  group_by(Subject, TruthValue, MemoryStrength) %>%
-  summarize(mean_rating = mean(Recoded_Response))
+# Perform left join to keep all combinations and summarize data
+summary_mean_beha <- all_combinations %>%
+  left_join(online_ratings, by = c("Subject", "Ambiguity", "TruthValue", "MemoryStrength")) %>%
+  group_by(Subject, Ambiguity, TruthValue, MemoryStrength) %>%
+  summarize(mean_rating = mean(Recoded_Response, na.rm = TRUE),
+            count = sum(!is.na(Recoded_Response)))
+
+# trans to numerical 
+summary_mean_beha <- transform(summary_mean_beha,Ambiguity = as.numeric(Ambiguity))
+
+class(summary_mean_beha$Ambiguity)
+
+write_excel_csv(summary_mean_beha, file="summary_mean_KNOC_beha_ambi.csv")
+
+# strong-memory_true certain subgroups
+
+subset_data <- function(data_frame, truth_val, mem_strength, ambiguity_val) {
+  subsetted <- data_frame %>%
+    filter(TruthValue == truth_val & MemoryStrength == mem_strength & Ambiguity == ambiguity_val)
+  return(subsetted)
+}
+
+# Assuming your dataframe is called 'your_data_frame'
+filtered_subset_ST_Un <- subset_data(summary_mean_beha , "True", "Strong", 0)
+
+filtered_subset_SF_Un <- subset_data(summary_mean_beha , "False", "Strong", 0)
+
+# regroup ambiguity
+rename_ambiguity_level <- function(data_frame, count_col, ambiguity_col) {
+  median_count <- median(data_frame[[count_col]])
+  
+  if (median_count > 0) {
+    data_frame[[ambiguity_col]] <- ifelse(data_frame[[count_col]] > median_count, 0, 1)
+  } else {
+    print("Count column has no positive values.")
+  }
+  
+  return(data_frame)
+}
+
+
+# Assuming your dataframe is called 'your_data_frame' and columns are 'Count' and 'Ambiguity'
+filtered_subset_ST_Un_re <- rename_ambiguity_level(filtered_subset_ST_Un , "count", "Ambiguity")
+
+filtered_subset_SF_Un_re <- rename_ambiguity_level(filtered_subset_SF_Un , "count", "Ambiguity")
+
+
+# #correlation between Ambiguous (binary categorical) and LPC mean --------
+#correlation between Ambiguous (binary categorical) and N400 mean activation (continuous)
+
+cor_N400_am_ST <- cor.test(filtered_subset_ST_Un_re$Ambiguity, summary_mean_N400_ST$mean_activation_N400)
+
+cor_LPC_am_ST <- cor.test(filtered_subset_ST_Un_re$Ambiguity, summary_mean_LPC_ST$mean_activation_LPC)
+
+cor_N400_am_SF <- cor.test(filtered_subset_SF_Un_re$Ambiguity, summary_mean_N400_SF$mean_activation_N400)
+
+cor_LPC_am_SF <- cor.test(filtered_subset_SF_Un_re$Ambiguity, summary_mean_LPC_SF$mean_activation_LPC)
+
 
 # rename subject columns 
 summary_mean_beha$Subject <- gsub("sub0", "", as.character((summary_mean_beha$Subject)))
