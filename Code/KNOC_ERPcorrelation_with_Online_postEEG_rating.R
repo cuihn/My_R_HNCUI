@@ -124,6 +124,7 @@ print(is_factor <- is.factor(online_ratings$TV))
 colnames(online_ratings)[23] <- "TruthValue" 
 colnames(online_ratings)[25] <- "MemoryStrength" 
 
+
 # add ambiguity level based on the re-coded response (1&5 least-ambiguous, 2 & 4 as some-ambiguous, 3 as ambiguous)
 # Create a function to determine ambiguity
 classify_ambiguity <- function(value) {
@@ -138,7 +139,7 @@ classify_ambiguity <- function(value) {
 }
 
 # add the 'Ambiguity" column using mutate
-online_ratings <- online_ratings %>%
+online_ratings_amb <- online_ratings %>%
   mutate(Ambiguity = sapply(Recoded_Response,classify_ambiguity))
 
 
@@ -157,21 +158,16 @@ online_ratings_summary <- online_ratings %>%
   summarise(mean_rating = mean(Recoded_Response),
             sd_rating = sd(Recoded_Response)
             )
-# 
-# # calculate the mean and sum of 'Value' by 'Subjects'/per subject/per condition
-# summary_mean_beha <- online_ratings %>%
-#   group_by(Subject,Ambiguity, TruthValue, MemoryStrength) %>%
-#   summarize(mean_rating = mean(Recoded_Response),
-#             count = n())
-# 
-# summary_mean_beha <- online_ratings %>%
-#   group_by(Subject, Ambiguity, TruthValue, MemoryStrength) %>%
-#   add_count() %>%
-#   summarize(mean_rating = mean(Recoded_Response, na.rm = TRUE),
-#             count = n())
 
-# Perform left join to keep all combinations and summarize data
-summary_mean_beha <- all_combinations %>%
+
+summary_mean_beha <- online_ratings %>%
+  group_by(Subject, TruthValue, MemoryStrength) %>%
+  add_count() %>%
+  summarize(mean_rating = mean(Recoded_Response, na.rm = TRUE),
+            count = n())
+
+# Perform left join to keep all combinations and summarize data with amb
+summary_mean_beha_amb <- all_combinations %>%
   left_join(online_ratings, by = c("Subject", "Ambiguity", "TruthValue", "MemoryStrength")) %>%
   group_by(Subject, Ambiguity, TruthValue, MemoryStrength) %>%
   summarize(mean_rating = mean(Recoded_Response, na.rm = TRUE),
@@ -182,20 +178,40 @@ summary_mean_beha <- transform(summary_mean_beha,Ambiguity = as.numeric(Ambiguit
 
 class(summary_mean_beha$Ambiguity)
 
-write_excel_csv(summary_mean_beha, file="summary_mean_KNOC_beha_ambi.csv")
+# rename subject columns 
+summary_mean_beha$Subject <- gsub("sub0", "", as.character((summary_mean_beha$Subject)))
+summary_mean_beha$Subject <- gsub("sub", "", as.character((summary_mean_beha$Subject)))
+summary_mean_beha$Subject <- as.numeric(summary_mean_beha$Subject)
+
+#write_excel_csv(summary_mean_beha, file="summary_mean_KNOC_beha_ambi.csv")
 
 # strong-memory_true certain subgroups
-
 subset_data <- function(data_frame, truth_val, mem_strength, ambiguity_val) {
   subsetted <- data_frame %>%
-    filter(TruthValue == truth_val & MemoryStrength == mem_strength & Ambiguity == ambiguity_val)
+    filter(MemoryStrength == mem_strength & Ambiguity == ambiguity_val & (TruthValue == truth_val | TruthValue == "False"))
   return(subsetted)
 }
 
-# Assuming your dataframe is called 'your_data_frame'
+# Assuming your dataframe is called 'your_data_frame' Un stands for unambiguity, st stands for Strong-True condition
 filtered_subset_ST_Un <- subset_data(summary_mean_beha , "True", "Strong", 0)
 
 filtered_subset_SF_Un <- subset_data(summary_mean_beha , "False", "Strong", 0)
+
+# Assuming your dataframe is called 'your_data_frame' Un stands for unambiguity, st stands for Strong-True condition
+filtered_subset_WT_Un <- subset_data(summary_mean_beha , "True", "Weak", 0)
+
+filtered_subset_WF_Un <- subset_data(summary_mean_beha , "False", "Weak", 0)
+
+# strong-memory_true certain subgroups
+subset_data_strong <- function(data_frame, mem_strength, ambiguity_val) {
+  subsetted <- data_frame %>%
+    filter(MemoryStrength == mem_strength & Ambiguity == ambiguity_val & (TruthValue == "True" | TruthValue == "False"))
+  return(subsetted)
+}
+
+# Applying the function to your data
+filtered_subset_S_Un <- subset_data_strong(summary_mean_beha, "Strong", 0)
+filtered_subset_W_Un <- subset_data_strong(summary_mean_beha,"Weak", 0)
 
 # regroup ambiguity
 rename_ambiguity_level <- function(data_frame, count_col, ambiguity_col) {
@@ -216,11 +232,16 @@ filtered_subset_ST_Un_re <- rename_ambiguity_level(filtered_subset_ST_Un , "coun
 
 filtered_subset_SF_Un_re <- rename_ambiguity_level(filtered_subset_SF_Un , "count", "Ambiguity")
 
+filtered_subset_S_Un_re <- rename_ambiguity_level(filtered_subset_S_Un, "count", "Ambiguity")
 
-# #correlation between Ambiguous (binary categorical) and LPC mean --------
-#correlation between Ambiguous (binary categorical) and N400 mean activation (continuous)
+filtered_subset_W_Un_re <- rename_ambiguity_level(filtered_subset_W_Un, "count", "Ambiguity")
 
-cor_N400_am_ST <- cor.test(filtered_subset_ST_Un_re$Ambiguity, summary_mean_N400_ST$mean_activation_N400)
+#write_excel_csv(filtered_subset_S_Un_re, file="KNOC_beha_ambi_subLevel.csv")
+write_excel_csv(filtered_subset_W_Un_re, file="KNOC_beha_ambi_subLevel_W.csv")
+
+# #correlation between Ambiguous (binary categorical) and LPC, N400 mean activation subject level --------
+
+cor_N400_am_ST <- cor.test(filtered_subset_ST_Un_re$Ambiguity, summary_mean_N400$N400_TS_FS)
 
 cor_LPC_am_ST <- cor.test(filtered_subset_ST_Un_re$Ambiguity, summary_mean_LPC_ST$mean_activation_LPC)
 
@@ -229,10 +250,20 @@ cor_N400_am_SF <- cor.test(filtered_subset_SF_Un_re$Ambiguity, summary_mean_N400
 cor_LPC_am_SF <- cor.test(filtered_subset_SF_Un_re$Ambiguity, summary_mean_LPC_SF$mean_activation_LPC)
 
 
-# rename subject columns 
-summary_mean_beha$Subject <- gsub("sub0", "", as.character((summary_mean_beha$Subject)))
-summary_mean_beha$Subject <- gsub("sub", "", as.character((summary_mean_beha$Subject)))
-summary_mean_beha$Subject <- as.numeric(summary_mean_beha$Subject)
+# N400 condition amplitude differences
+summary_mean_N400 <- summary_mean_N400 %>% 
+  pivot_wider(
+    names_from = c(TruthValue, MemoryStrength),
+    values_from = c(mean_activation_N400)
+  ) 
+
+
+summary_mean_N400 <- summary_mean_N400 %>% 
+  mutate(
+    N400_TS_FS = True_Strong - False_Strong,
+    N400_FW_FW = False_Weak - True_Weak,
+  )
+
 
 # merge_online_beha and ERP_mean ----------------------------------------------------
 summary_mean_list <- list(summary_mean_beha, summary_mean_N400, summary_mean_LPC) %>% 
