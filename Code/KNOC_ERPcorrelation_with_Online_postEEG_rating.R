@@ -27,8 +27,8 @@ library(effectsize)
 #setwd('/Users/hainingcui/Dropbox/Trying/EEG_KNOC_Analysis/KNOC_HN_Beh_ERP_corrrelation_analysis_v2') #for OS
 setwd('C://Users//hcui8//Dropbox//Trying//EEG_KNOC_Analysis//KNOC_HN_Beh_ERP_corrrelation_analysis_v2') #for windows
 
-file_path <- "C://Users//hcui8//Dropbox//Trying//EEG_KNOC_Analysis//KNOC_HN_Beh_ERP_corrrelation_analysis_v2"
-
+#file_path <- "C://Users//hcui8//Dropbox//Trying//EEG_KNOC_Analysis//KNOC_HN_Beh_ERP_corrrelation_analysis_v2"
+file_path <- '/Users/hainingcui/Dropbox/Trying/EEG_KNOC_Analysis/KNOC_HN_Beh_ERP_corrrelation_analysis_v2'
 
 # #load pre-EEG rating score ----------------------------------------------
 pre_EEG_scores <- read_xlsx('KNOC_preEEG_results.xlsx')
@@ -71,6 +71,19 @@ summary_mean_N400_SF <- All_clean_N400 %>%
   group_by(Subject, TruthValue, MemoryStrength) %>%
   summarize(mean_activation_N400 = mean(Activation_N400))
 
+# N400 condition amplitude differences
+summary_mean_N400 <- summary_mean_N400 %>% 
+  pivot_wider(
+    names_from = c(TruthValue, MemoryStrength),
+    values_from = c(mean_activation_N400)
+  ) 
+
+summary_mean_N400 <- summary_mean_N400 %>% 
+  mutate(
+    N400_TS_FS = True_Strong - False_Strong,
+    N400_FW_FW = False_Weak - True_Weak,
+  )
+
 # # load LPC data, clean, summarize mean ----------------------------------
 
 All_clean_LPC <- read.csv('clean_data_LPC_v2.csv')
@@ -88,15 +101,18 @@ summary_mean_LPC <- All_clean_LPC %>%
   group_by(Subject, TruthValue, MemoryStrength) %>%
   summarize(mean_activation_LPC = mean(Activation_LPC))
 
-summary_mean_LPC_ST <- All_clean_LPC %>%
-  filter(TruthValue == "True" & MemoryStrength == "Strong") %>%
-  group_by(Subject, TruthValue, MemoryStrength) %>%
-  summarize(mean_activation_LPC = mean(Activation_LPC))
+# N400 condition amplitude differences
+summary_mean_N400 <- summary_mean_N400 %>% 
+  pivot_wider(
+    names_from = c(TruthValue, MemoryStrength),
+    values_from = c(mean_activation_N400)
+  ) 
 
-summary_mean_LPC_SF <- All_clean_LPC %>%
-  filter(TruthValue == "False" & MemoryStrength == "Strong") %>%
-  group_by(Subject, TruthValue, MemoryStrength) %>%
-  summarize(mean_activation_LPC = mean(Activation_LPC))
+summary_mean_N400 <- summary_mean_N400 %>% 
+  mutate(
+    N400_TS_FS = True_Strong - False_Strong,
+    N400_FW_FW = False_Weak - True_Weak,
+  )
 
 # summarize postEEG rating scores -----------------------------------------
 postEEG_ratings <- read.csv("KNOC_post_rating_hit_ForCorrelate.csv")
@@ -248,21 +264,6 @@ cor_LPC_am_ST <- cor.test(filtered_subset_ST_Un_re$Ambiguity, summary_mean_LPC_S
 cor_N400_am_SF <- cor.test(filtered_subset_SF_Un_re$Ambiguity, summary_mean_N400_SF$mean_activation_N400)
 
 cor_LPC_am_SF <- cor.test(filtered_subset_SF_Un_re$Ambiguity, summary_mean_LPC_SF$mean_activation_LPC)
-
-
-# N400 condition amplitude differences
-summary_mean_N400 <- summary_mean_N400 %>% 
-  pivot_wider(
-    names_from = c(TruthValue, MemoryStrength),
-    values_from = c(mean_activation_N400)
-  ) 
-
-
-summary_mean_N400 <- summary_mean_N400 %>% 
-  mutate(
-    N400_TS_FS = True_Strong - False_Strong,
-    N400_FW_FW = False_Weak - True_Weak,
-  )
 
 
 # merge_online_beha and ERP_mean ----------------------------------------------------
