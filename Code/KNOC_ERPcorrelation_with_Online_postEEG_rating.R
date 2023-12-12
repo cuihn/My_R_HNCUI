@@ -300,30 +300,24 @@ rename_ambiguity_level_portion <- function(data_frame, count_col, ambiguity_col,
 filtered_subset_S_Umb_re <- rename_ambiguity_level_portion(filtered_subset_S_Umb, "count", "Ambiguity")
 filtered_subset_W_Umb_re <- rename_ambiguity_level_portion(filtered_subset_W_Umb, "count", "Ambiguity")
 
-write_excel_csv(filtered_subset_S_Umb_re, file="KNOC_beha_ambi_subLevel_S.csv")
-write_excel_csv(filtered_subset_W_Umb_re, file="KNOC_beha_ambi_subLevel_W.csv")
+# write_excel_csv(filtered_subset_S_Umb_re, file="KNOC_beha_ambi_subLevel_S.csv")
+# write_excel_csv(filtered_subset_W_Umb_re, file="KNOC_beha_ambi_subLevel_W.csv")
 
-#regroup based on median split level threshold
-filtered_subset_S_Umb_re_median <- rename_ambiguity_level_median(filtered_subset_S_Umb, "count", "Ambiguity")
-filtered_subset_W_Umb_re_median <- rename_ambiguity_level_median(filtered_subset_W_Umb, "count", "Ambiguity")
-
-write_excel_csv(filtered_subset_S_Umb_re_median, file="KNOC_beha_ambi_subLevel_S_median.csv")
-write_excel_csv(filtered_subset_W_Umb_re_median, file="KNOC_beha_ambi_subLevel_W_median.csv")
 
 # import subgroup data
-regroup_strong_amb <- read_excel("strong_amb_regroup.xlsx")
+regroup_strong_amb <- read.delim("clipboard")
 # rename subject columns 
 regroup_strong_amb$Subject <- gsub("sub0", "", as.character((regroup_strong_amb$Subject)))
 regroup_strong_amb$Subject <- gsub("sub", "", as.character((regroup_strong_amb$Subject)))
 # transform subject to numerical 
 regroup_strong_amb<- transform(regroup_strong_amb, Subject = as.numeric(Subject))
-class(summary_mean_beha$Subject)
+class(regroup_strong_amb$Subject)
 
-regroup_weak_amb <- read_excel("weak_amb_regroup.xlsx")
+regroup_weak_amb <- read.delim("clipboard")
 regroup_weak_amb$Subject <- gsub("sub0", "", as.character((regroup_weak_amb$Subject)))
 regroup_weak_amb$Subject <- gsub("sub", "", as.character((regroup_weak_amb$Subject)))
 regroup_weak_amb<- transform(regroup_weak_amb, Subject = as.numeric(Subject))
-class(summary_mean_beha$Subject)
+class(regroup_weak_amb$Subject)
 
 # #correlation between Ambiguous (binary categorical) and LPC, N400 mean activation subject level --------
 
@@ -363,13 +357,14 @@ summary_mean_LPC  <- data.frame(summary_mean_LPC)
 
 summary_mean_LPC_amb <- pivot_longer(summary_mean_LPC, cols = starts_with("False_Strong") | starts_with("True_Strong"), 
                                       names_to = "Condition", values_to = "Amplitude")
+
 summary_mean_LPC_amb <- transform(summary_mean_LPC_amb, Ambiguity = as.character(Ambiguity))
 
 
-LMM_amb_LPC <- lmer(Amplitude ~ (Condition+Ambiguity)^2 + (1|Subject), data = summary_mean_LPC_amb)
-summary(LMM_amb_LPC)
-anova(LMM_amb_LPC)
-summary(LMM_amb_LPC)$coefficients
+LMM_amb_LPC_strong <- lmer(Amplitude ~ (Condition+Ambiguity)^2 + (1|Subject), data = summary_mean_LPC_amb)
+summary(LMM_amb_LPC_strong)
+anova(LMM_amb_LPC_strong)
+summary(LMM_amb_LPC_strong)$coefficients
 
 # # merge amb_weak and LPC ERP_mean ----------------------------------------------------
 summary_mean_LPC_weak_amb <- list(summary_mean_LPC, regroup_weak_amb) %>%
